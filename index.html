@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Knowledge Voyage</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e) !important; /* Dark gradient background */
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: background 0.5s;
+            position: relative;
+            background-color: transparent !important; /* No white background */
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: hsl(50, 100%, 70%); /* Gold/neon color for dots */
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 10s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+            50% { transform: translate(50vw, 50vh) scale(1.2); opacity: 0.4; }
+            100% { transform: translate(100vw, 100vh) scale(1); opacity: 0.2; }
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1); /* Light, see-through white box for the game */
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1; /* Keeps the game box on top of particles */
+            color: #fff;
+        }
+
+        #game-container.shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        #battle-hud {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .player-card {
+            width: 90px;
+            height: 120px; /* Increased height for portrait */
+            background: linear-gradient(135deg, #444, #555);
+            border: 2px solid #777;
+            border-radius: 10px;
+            padding: 8px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, opacity 0.5s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player-card:hover {
+            transform: scale(1.05);
+        }
+
+        .player-card.eliminated {
+            opacity: 0.4;
+            position: relative;
+        }
+
+        .player-card.eliminated::after {
+            content: "X";
+            color: #ff4d4d;
+            font-size: 2.5em;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .player-card .avatar {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 5px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); /* Glowing edge */
+            animation: avatarPulse 2s infinite ease-in-out; /* Subtle pulse */
+        }
+
+        .player-card .name {
+            font-size: 0.9em;
+            color: #fff;
+            margin: 5px 0;
+        }
+
+        .player-card .lives {
+            font-size: 1em;
+            color: #ffd700;
+        }
+
+        @keyframes avatarPulse {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+            50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        }
+
+        #question-container {
+            perspective: 1000px; /* Creates 3D space */
+            width: 100%;
+            max-width: 800px;
+            margin: 0 0 15px 0;
+        }
+
+        #question {
+            font-family: 'Bangers', cursive;
+            font-size: 1.8em;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #222;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.5);
+            border: 3px solid #ffcc00;
+            transform: rotateX(0deg) rotateY(0deg);
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease-in-out;
+            animation: questionPop 1s ease-out forwards;
+        }
+
+        #question:hover {
+            transform: rotateX(2deg) rotateY(2deg) scale(1.02); /* Subtle hover tilt */
+        }
+
+        @keyframes questionPop {
+            0% {
+                transform: rotateX(30deg) rotateY(30deg) scale(0.9);
+                opacity: 0;
+            }
+            50% {
+                transform: rotateX(15deg) rotateY(15deg) scale(1.05); /* Overshoot for smoothness */
+                opacity: 1;
+            }
+            100% {
+                transform: rotateX(0deg) rotateY(0deg) scale(1); /* Perfectly straight */
+                opacity: 1;
+            }
+        }
+
+        #timer-bar-container {
+            width: 100%;
+            height: 30px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #333, #555); /* Darker base for contrast */
+            border: 2px solid #666;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(0, 0, 0, 0.2);
+            position: relative; /* For wave effect */
+        }
+
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ffd700, #ffaa00); /* Vibrant gradient */
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.8), inset 0 2px 5px rgba(255, 255, 255, 0.5); /* Glossy glow */
+            position: relative;
+            overflow: hidden;
+            transition: width linear; /* Duration set in JS */
+            transform: translateZ(0); /* Force hardware acceleration */
+        }
+
+        #timer-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 150%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: wave 2s infinite linear; /* Energy wave effect */
+        }
+
+        @keyframes wave {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        #options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            padding: 25px;
+            font-size: 1.6em;
+            color: white;
+            background: linear-gradient(135deg, #555, #777);
+            border: 3px solid #888;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+            min-height: 100px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .option-btn:active {
+            transform: scale(0.95);
+        }
+
+        .option-btn[data-letter="A"] { background: linear-gradient(135deg, #d9534f, #c9302c); }
+        .option-btn[data-letter="B"] { background: linear-gradient(135deg, #5cb85c, #449d44); }
+        .option-btn[data-letter="C"] { background: linear-gradient(135deg, #f0ad4e, #ec971f); }
+        .option-btn[data-letter="D"] { background: linear-gradient(135deg, #0275d8, #025aa5); }
+
+        #feedback {
+            font-size: 1.4em;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #222;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            width: 100%;
+            text-align: center;
+        }
+
+        #feedback.show {
+            opacity: 1;
+        }
+
+        #feedback.sparkle {
+            animation: sparkle 0.7s ease-in-out;
+        }
+
+        #play-again-btn {
+            padding: 15px 30px;
+            font-size: 1.4em;
+            color: white;
+            background: linear-gradient(135deg, #0275d8, #025aa5);
+            border: 3px solid #0056b3;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #play-again-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        #score-display, #lobby {
+            font-size: 1.3em;
+            margin: 10px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #666;
+            border-radius: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        #power-ups {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .power-up-btn {
+            padding: 12px 20px;
+            font-size: 1.1em;
+            color: white;
+            background: linear-gradient(135deg, #666, #888);
+            border: 2px solid #999;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .power-up-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #daily-timer {
+            font-size: 1.1em;
+            margin: 15px 0;
+            text-align: center;
+            color: #ffd700;
+        }
+
+        #leaderboard, #category-selection, #league-dashboard {
+            font-size: 1.3em;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #666;
+            border-radius: 10px;
+            text-align: center;
+            width: 100%;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #leaderboard table, #category-selection table, #league-dashboard table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #leaderboard th, #leaderboard td, #category-selection th, #category-selection td, #league-dashboard th, #league-dashboard td {
+            padding: 10px;
+            border: 1px solid #666;
+        }
+
+        #leaderboard th, #category-selection th, #league-dashboard th {
+            background: linear-gradient(135deg, #555, #777);
+            font-family: 'Bangers', cursive;
+            color: #fff;
+        }
+
+        .category-btn, .daily-challenge-btn, .battle-royale-btn, .league-btn {
+            padding: 12px 20px;
+            font-size: 1.2em;
+            color: white;
+            background: linear-gradient(135deg, #0275d8, #025aa5);
+            border: 2px solid #0056b3;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .category-btn:hover, .daily-challenge-btn:hover, .battle-royale-btn:hover, .league-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .category-btn.locked, .daily-challenge-btn.disabled {
+            background: linear-gradient(135deg, #666, #888);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .bronze { border-color: #cd7f32; }
+        .silver { border-color: #c0c0c0; }
+        .gold { border-color: #ffd700; }
+
+        #league-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #555, #777);
+            border: 2px solid #888;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #0275d8, #025aa5);
+            border-color: #0056b3;
+        }
+
+        .coin-icon::before { content: ""; font-size: 1.2em; }
+        .star-icon::before { content: ""; font-size: 1.2em; }
+        .gem-icon::before { content: ""; font-size: 1.2em; }
+
+        @keyframes sparkle {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+            50% { 
+                box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.9),
+                            0 0 40px 20px rgba(255, 215, 0, 0.6),
+                            0 0 60px 30px rgba(255, 215, 0, 0.3);
+            }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        #title-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            z-index: 10; /* Above particles (z-index: -1) and game container */
+        }
+
+        #title-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #start-game-btn {
+            padding: 20px 40px;
+            font-size: 1.8em;
+            font-family: 'Bangers', cursive;
+            color: white;
+            background: linear-gradient(135deg, #ffd700, #ffaa00); /* Matches your question style for consistency */
+            border: 3px solid #ffcc00;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.5);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        #start-game-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 215, 0, 0.7);
+        }
+
+        #start-game-btn:active {
+            transform: scale(0.95);
+        }
+
+        #game-container {
+            display: none; /* Initially hidden until start button is clicked */
+        }
+
+        /* Define icons for stars and gems */
+        .star-icon::before {
+            content: "★";
+            color: #ffd700; /* Gold color for stars */
+            margin-right: 5px;
+        }
+
+        .gem-icon::before {
+            content: "💎";
+            color: #00b7eb; /* Cyan color for gems */
+            margin-right: 5px;
+        }
+
+        /* Style the table */
+        #category-selection table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        #category-selection th, #category-selection td {
+            padding: 12px;
+            border: 1px solid #666;
+            text-align: center;
+        }
+
+        #category-selection th {
+            background: linear-gradient(135deg, #555, #777);
+            font-family: 'Bangers', cursive;
+            color: #fff;
+            font-size: 1.2em;
+        }
+
+        #category-selection td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Status colors */
+        .status-unlocked {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-locked {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* Play/Unlock button styles */
+        .play-btn, .unlock-btn {
+            padding: 8px 16px;
+            font-size: 1em;
+            color: white;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .play-btn {
+            background: linear-gradient(135deg, #0275d8, #025aa5);
+            border-color: #0056b3;
+        }
+
+        .unlock-btn {
+            background: linear-gradient(135deg, #666, #888);
+            border-color: #999;
+        }
+
+        .play-btn:hover, .unlock-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Section headers */
+        .section-header {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5em;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="title-screen">
+        <img src="title-screen.jpg" alt="Knowledge Voyage Title Screen" id="title-image">
+        <button id="start-game-btn">Start Game</button>
+    </div>
+    <div class="particles"></div>
+    <div id="game-container">
+        <div id="battle-hud" style="display: none;"></div>
+        <div id="question-container">
+            <div id="question"></div>
+        </div>
+        <div id="timer-bar-container">
+            <div id="timer-bar"></div>
+        </div>
+        <div id="options"></div>
+        <div id="feedback"></div>
+        <div id="score-display">Score: 0 | Streak: 0 | Coins: <span class="coin-icon"></span>0 | Stars: <span class="star-icon"></span>0 | Gems: <span class="gem-icon"></span>0</div>
+        <div id="lobby"></div>
+        <div id="power-ups">
+            <button class="power-up-btn" data-power="extraTime">Extra Time (10 <span class="coin-icon"></span>)</button>
+            <button class="power-up-btn" data-power="doublePoints">Double Points (10 <span class="coin-icon"></span>)</button>
+            <button class="power-up-btn" data-power="freeze">Freeze Timer (10 <span class="coin-icon"></span>)</button>
+            <button class="power-up-btn" data-power="fiftyFifty">50/50 (15 <span class="coin-icon"></span>)</button>
+            <button class="power-up-btn" data-power="stealPoints">Steal Points (20 <span class="coin-icon"></span>)</button>
+            <button class="power-up-btn" data-power="shield">Shield (10 <span class="gem-icon"></span>)</button>
+        </div>
+        <div id="daily-timer"></div>
+        <div id="category-selection" style="display: none;"></div>
+        <div id="league-dashboard"></div>
+        <div id="leaderboard"></div>
+    </div>
+    <script>
+let game = {
+    questions: {
+        "General Knowledge": [
+            { question: "Which country is known as the Land of a Thousand Lakes?", options: ["A) Sweden", "B) Finland", "C) Norway", "D) Denmark"], correctAnswer: "B" },
+            { question: "What is the smallest country in the world by land area?", options: ["A) Monaco", "B) Vatican City", "C) Liechtenstein", "D) San Marino"], correctAnswer: "B" },
+            { question: "Which animal has the longest lifespan?", options: ["A) Elephant", "B) Blue Whale", "C) Bowhead Whale", "D) Giant Tortoise"], correctAnswer: "C" },
+            { question: "What is the capital of Iceland?", options: ["A) Oslo", "B) Reykjavik", "C) Helsinki", "D) Stockholm"], correctAnswer: "B" },
+            { question: "Which continent is the driest?", options: ["A) Antarctica", "B) Australia", "C) Africa", "D) Asia"], correctAnswer: "A" },
+            { question: "What is the currency of Mexico?", options: ["A) Peso", "B) Real", "C) Bolivar", "D) Escudo"], correctAnswer: "A" },
+            { question: "Which fruit is known for its high vitamin C content?", options: ["A) Apple", "B) Orange", "C) Banana", "D) Pear"], correctAnswer: "B" },
+            { question: "What is the capital of Argentina?", options: ["A) Santiago", "B) Buenos Aires", "C) Montevideo", "D) Lima"], correctAnswer: "B" },
+            { question: "Which animal is known for its black and white spots?", options: ["A) Dalmatian", "B) Panda", "C) Skunk", "D) Tiger"], correctAnswer: "A" },
+            { question: "What is the largest country in South America by area?", options: ["A) Argentina", "B) Brazil", "C) Peru", "D) Colombia"], correctAnswer: "B" },
+            { question: "Which language has the most native speakers worldwide?", options: ["A) English", "B) Spanish", "C) Mandarin Chinese", "D) Hindi"], correctAnswer: "C" },
+            { question: "What is the capital of Thailand?", options: ["A) Bangkok", "B) Hanoi", "C) Jakarta", "D) Manila"], correctAnswer: "A" },
+            { question: "Which country is known for inventing pizza?", options: ["A) France", "B) Italy", "C) Spain", "D) Greece"], correctAnswer: "B" },
+            { question: "What is the tallest animal in the world?", options: ["A) Elephant", "B) Giraffe", "C) Blue Whale", "D) Ostrich"], correctAnswer: "B" },
+            { question: "Which ocean is the smallest?", options: ["A) Atlantic", "B) Indian", "C) Arctic", "D) Southern"], correctAnswer: "C" },
+            { question: "What is the capital of South Korea?", options: ["A) Tokyo", "B) Seoul", "C) Pyongyang", "D) Beijing"], correctAnswer: "B" },
+            { question: "Which flower is a symbol of remembrance?", options: ["A) Rose", "B) Poppy", "C) Daisy", "D) Tulip"], correctAnswer: "B" },
+            { question: "What is the primary ingredient in sushi?", options: ["A) Rice", "B) Bread", "C) Pasta", "D) Potatoes"], correctAnswer: "A" },
+            { question: "Which country has the most pyramids?", options: ["A) Egypt", "B) Mexico", "C) Sudan", "D) China"], correctAnswer: "C" },
+            { question: "What is the capital of Switzerland?", options: ["A) Zurich", "B) Geneva", "C) Bern", "D) Basel"], correctAnswer: "C" },
+            { question: "Which animal is the fastest on land?", options: ["A) Cheetah", "B) Lion", "C) Horse", "D) Greyhound"], correctAnswer: "A" },
+            { question: "What is the currency of Russia?", options: ["A) Ruble", "B) Krone", "C) Zloty", "D) Dinar"], correctAnswer: "A" },
+            { question: "Which country is famous for the samba dance?", options: ["A) Argentina", "B) Brazil", "C) Spain", "D) Cuba"], correctAnswer: "B" },
+            { question: "What is the capital of Ireland?", options: ["A) Belfast", "B) Dublin", "C) Cork", "D) Galway"], correctAnswer: "B" },
+            { question: "Which mountain range separates Europe and Asia?", options: ["A) Alps", "B) Ural Mountains", "C) Andes", "D) Rockies"], correctAnswer: "B" },
+            { question: "What is the largest bird in the world?", options: ["A) Eagle", "B) Ostrich", "C) Albatross", "D) Emu"], correctAnswer: "B" },
+            { question: "Which country has the most islands?", options: ["A) Indonesia", "B) Sweden", "C) Philippines", "D) Japan"], correctAnswer: "A" },
+            { question: "What is the capital of Portugal?", options: ["A) Madrid", "B) Lisbon", "C) Barcelona", "D) Seville"], correctAnswer: "B" },
+            { question: "Which animal is known for its pouch?", options: ["A) Kangaroo", "B) Koala", "C) Wombat", "D) Platypus"], correctAnswer: "A" },
+            { question: "What is the capital of Chile?", options: ["A) Santiago", "B) Lima", "C) Bogota", "D) Quito"], correctAnswer: "A" },
+            { question: "Which fruit is known as a 'superfood' due to its antioxidants?", options: ["A) Apple", "B) Blueberry", "C) Banana", "D) Grape"], correctAnswer: "B" },
+            { question: "What is the currency of India?", options: ["A) Rupee", "B) Taka", "C) Baht", "D) Ringgit"], correctAnswer: "A" },
+            { question: "Which country is known for the fjords?", options: ["A) Norway", "B) Iceland", "C) Sweden", "D) Finland"], correctAnswer: "A" },
+            { question: "What is the capital of Greece?", options: ["A) Athens", "B) Thessaloniki", "C) Crete", "D) Rhodes"], correctAnswer: "A" },
+            { question: "Which animal is known for its black and white stripes?", options: ["A) Zebra", "B) Tiger", "C) Panda", "D) Skunk"], correctAnswer: "A" },
+            { question: "What is the capital of Colombia?", options: ["A) Bogota", "B) Caracas", "C) Quito", "D) Lima"], correctAnswer: "A" },
+            { question: "Which country is known for its maple syrup?", options: ["A) USA", "B) Canada", "C) France", "D) Norway"], correctAnswer: "B" },
+            { question: "What is the capital of Vietnam?", options: ["A) Ho Chi Minh City", "B) Hanoi", "C) Da Nang", "D) Hue"], correctAnswer: "B" },
+            { question: "Which animal is known for its long neck and spots?", options: ["A) Giraffe", "B) Elephant", "C) Zebra", "D) Rhino"], correctAnswer: "A" },
+            { question: "What is the currency of South Africa?", options: ["A) Rand", "B) Shilling", "C) Naira", "D) Cedi"], correctAnswer: "A" },
+            { question: "Which country is known for the tango dance?", options: ["A) Brazil", "B) Argentina", "C) Spain", "D) Mexico"], correctAnswer: "B" },
+            { question: "What is the capital of Belgium?", options: ["A) Brussels", "B) Amsterdam", "C) Luxembourg", "D) Paris"], correctAnswer: "A" },
+            { question: "Which animal is the largest living primate?", options: ["A) Chimpanzee", "B) Orangutan", "C) Gorilla", "D) Baboon"], correctAnswer: "C" },
+            { question: "What is the capital of Norway?", options: ["A) Oslo", "B) Stockholm", "C) Helsinki", "D) Copenhagen"], correctAnswer: "A" },
+            { question: "Which country is known for its tea plantations?", options: ["A) Sri Lanka", "B) Thailand", "C) Vietnam", "D) Indonesia"], correctAnswer: "A" },
+            { question: "What is the currency of China?", options: ["A) Yen", "B) Yuan", "C) Won", "D) Ringgit"], correctAnswer: "B" },
+            { question: "What is the capital of Peru?", options: ["A) Lima", "B) Santiago", "C) Bogota", "D) Quito"], correctAnswer: "A" },
+            { question: "Which animal is known for its ability to change color?", options: ["A) Chameleon", "B) Snake", "C) Lizard", "D) Frog"], correctAnswer: "A" },
+            { question: "What is the capital of Austria?", options: ["A) Vienna", "B) Salzburg", "C) Innsbruck", "D) Graz"], correctAnswer: "A" },
+            { question: "Which country is known for its windmills?", options: ["A) Germany", "B) Netherlands", "C) Denmark", "D) Belgium"], correctAnswer: "B" },
+            { question: "What is the currency of Turkey?", options: ["A) Lira", "B) Dinar", "C) Rial", "D) Drachma"], correctAnswer: "A" },
+            { question: "What is the capital of Denmark?", options: ["A) Copenhagen", "B) Oslo", "C) Stockholm", "D) Helsinki"], correctAnswer: "A" },
+            { question: "Which animal is known for its humped back?", options: ["A) Camel", "B) Horse", "C) Donkey", "D) Rhino"], correctAnswer: "A" },
+            { question: "What is the capital of Finland?", options: ["A) Helsinki", "B) Oslo", "C) Stockholm", "D) Copenhagen"], correctAnswer: "A" },
+            { question: "Which country is known for its chocolate?", options: ["A) Belgium", "B) France", "C) Germany", "D) Italy"], correctAnswer: "A" },
+            { question: "What is the currency of Egypt?", options: ["A) Pound", "B) Dinar", "C) Dirham", "D) Riyal"], correctAnswer: "A" },
+            { question: "What is the capital of Sweden?", options: ["A) Stockholm", "B) Oslo", "C) Helsinki", "D) Copenhagen"], correctAnswer: "A" },
+            { question: "Which animal is known for its long trunk?", options: ["A) Elephant", "B) Rhino", "C) Hippo", "D) Giraffe"], correctAnswer: "A" },
+            { question: "What is the capital of Spain?", options: ["A) Madrid", "B) Barcelona", "C) Seville", "D) Valencia"], correctAnswer: "A" },
+            { question: "Which country is known for its pyramids?", options: ["A) Egypt", "B) Mexico", "C) China", "D) Peru"], correctAnswer: "A" },
+            { question: "What is the currency of Germany?", options: ["A) Euro", "B) Mark", "C) Franc", "D) Krone"], correctAnswer: "A" },
+            { question: "What is the capital of Kenya?", options: ["A) Nairobi", "B) Lagos", "C) Accra", "D) Kampala"], correctAnswer: "A" },
+            { question: "What is the capital of Nigeria?", options: ["A) Lagos", "B) Abuja", "C) Accra", "D) Nairobi"], correctAnswer: "B" },
+            { question: "Which country is known for its carnival?", options: ["A) Brazil", "B) Spain", "C) Italy", "D) France"], correctAnswer: "A" },
+            { question: "What is the currency of France?", options: ["A) Euro", "B) Franc", "C) Pound", "D) Mark"], correctAnswer: "A" },
+            { question: "What is the capital of Morocco?", options: ["A) Rabat", "B) Casablanca", "C) Marrakech", "D) Fez"], correctAnswer: "A" },
+            { question: "What is the capital of Poland?", options: ["A) Warsaw", "B) Krakow", "C) Gdansk", "D) Wroclaw"], correctAnswer: "A" },
+            { question: "What is the capital of France?", options: ["A) Florida", "B) France", "C) Paris", "D) Texas"], correctAnswer: "C" },
+            { question: "Which planet is known as the Red Planet?", options: ["A) Jupiter", "B) Mars", "C) Venus", "D) Saturn"], correctAnswer: "B" },
+            { question: "What year did the first man land on the moon?", options: ["A) 1969", "B) 1972", "C) 1965", "D) 1980"], correctAnswer: "A" },
+            { question: "How many continents are there?", options: ["A) 5", "B) 6", "C) 7", "D) 8"], correctAnswer: "C" },
+            { question: "What is the largest ocean on Earth?", options: ["A) Atlantic", "B) Indian", "C) Arctic", "D) Pacific"], correctAnswer: "D" },
+            { question: "Which element has the chemical symbol H?", options: ["A) Helium", "B) Hydrogen", "C) Hafnium", "D) Holmium"], correctAnswer: "B" },
+            { question: "What is the smallest prime number?", options: ["A) 1", "B) 2", "C) 3", "D) 5"], correctAnswer: "B" },
+            { question: "What is the capital of Australia?", options: ["A) Sydney", "B) Melbourne", "C) Canberra", "D) Perth"], correctAnswer: "C" },
+            { question: "What is the largest mammal in the world?", options: ["A) Elephant", "B) Blue Whale", "C) Giraffe", "D) Hippopotamus"], correctAnswer: "B" },
+            { question: "What is the chemical formula for water?", options: ["A) CO2", "B) H2O", "C) O2", "D) H2SO4"], correctAnswer: "B" },
+            { question: "What is the tallest building in the world as of 2025?", options: ["A) Shanghai Tower", "B) Burj Khalifa", "C) One Vanderbilt", "D) Lotte World Tower"], correctAnswer: "B" },
+            { question: "Which country has the most lakes in the world?", options: ["A) Russia", "B) Canada", "C) Finland", "D) Sweden"], correctAnswer: "B" },
+            { question: "What gas makes up about 21% of Earth’s atmosphere?", options: ["A) Nitrogen", "B) Oxygen", "C) Carbon Dioxide", "D) Argon"], correctAnswer: "B" },
+            { question: "What is the currency of the United Kingdom?", options: ["A) Euro", "B) Pound Sterling", "C) Dollar", "D) Franc"], correctAnswer: "B" },
+            { question: "How many players are on a standard soccer team on the field?", options: ["A) 9", "B) 10", "C) 11", "D) 12"], correctAnswer: "C" },
+            { question: "What is the largest desert in Asia?", options: ["A) Gobi", "B) Sahara", "C) Arabian", "D) Taklamakan"], correctAnswer: "A" },
+            { question: "Which fruit is known as the 'king of fruits' in Southeast Asia?", options: ["A) Mango", "B) Durian", "C) Papaya", "D) Banana"], correctAnswer: "B" },
+            { question: "What is the capital of New Zealand?", options: ["A) Auckland", "B) Wellington", "C) Christchurch", "D) Hamilton"], correctAnswer: "B" },
+            { question: "Which element is the most abundant in the universe?", options: ["A) Oxygen", "B) Carbon", "C) Hydrogen", "D) Helium"], correctAnswer: "C" },
+            { question: "What is the official language of Brazil?", options: ["A) Spanish", "B) Portuguese", "C) French", "D) English"], correctAnswer: "B" },
+            { question: "Which country won the FIFA World Cup in 2018?", options: ["A) Germany", "B) Brazil", "C) France", "D) Argentina"], correctAnswer: "C" },
+            { question: "What is the longest river in South America?", options: ["A) Amazon", "B) Nile", "C) Mississippi", "D) Yangtze"], correctAnswer: "A" },
+            { question: "Which gas do humans primarily exhale?", options: ["A) Oxygen", "B) Nitrogen", "C) Carbon Dioxide", "D) Methane"], correctAnswer: "C" },
+            { question: "What is the capital of India?", options: ["A) Mumbai", "B) Delhi", "C) Bangalore", "D) Kolkata"], correctAnswer: "B" },
+            { question: "Which animal is the national symbol of Australia?", options: ["A) Koala", "B) Kangaroo", "C) Emu", "D) Wombat"], correctAnswer: "B" },
+            { question: "What is the largest island in the world?", options: ["A) Greenland", "B) New Guinea", "C) Borneo", "D) Madagascar"], correctAnswer: "A" },
+            { question: "Which planet has the most moons?", options: ["A) Saturn", "B) Jupiter", "C) Uranus", "D) Neptune"], correctAnswer: "A" },
+            { question: "What is the highest mountain in Africa?", options: ["A) Kilimanjaro", "B) Kenya", "C) Ruwenzori", "D) Elgon"], correctAnswer: "A" },
+            { question: "Which color is not part of the Olympic rings?", options: ["A) Green", "B) Purple", "C) Black", "D) Red"], correctAnswer: "B" },
+            { question: "The Great Wall of China is visible from space with the naked eye.", options: ["True", "False"], correctAnswer: "False", type: "true-false" },
+            { question: "A day on Venus is longer than a year on Venus.", options: ["True", "False"], correctAnswer: "True", type: "true-false" },
+            { question: "What is this famous landmark?", image: "https://www.worldatlas.com/r/w960-q80/upload/09/04/49/untitled-design-374.jpg", options: ["A) Eiffel Tower", "B) Statue of Liberty", "C) Big Ben", "D) Colosseum"], correctAnswer: "A", type: "image-based" },
+            { question: "Identify this animal.", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Grosser_Panda.JPG/2560px-Grosser_Panda.JPG", options: ["A) Bear", "B) Panda", "C) Raccoon", "D) Koala"], correctAnswer: "B", type: "image-based" }
+        ],
+        "Science & Tech": [
+            { question: "What is the freezing point of water at sea level?", options: ["A) 0°C", "B) 32°C", "C) 100°C", "D) -10°C"], correctAnswer: "A" },
+            { question: "Which planet is known as Earth's twin due to its similar size?", options: ["A) Mars", "B) Venus", "C) Mercury", "D) Jupiter"], correctAnswer: "B" },
+            { question: "What is the chemical symbol for silver?", options: ["A) Ag", "B) Au", "C) Si", "D) Sr"], correctAnswer: "A" },
+            { question: "What is the primary source of energy for Earth's climate system?", options: ["A) Geothermal", "B) Solar", "C) Wind", "D) Tidal"], correctAnswer: "B" },
+            { question: "Which gas is used in balloons to make them float?", options: ["A) Hydrogen", "B) Helium", "C) Nitrogen", "D) Oxygen"], correctAnswer: "B" },
+            { question: "What is the unit of electric current?", options: ["A) Volt", "B) Ohm", "C) Ampere", "D) Watt"], correctAnswer: "C" },
+            { question: "Which scientist discovered gravity when an apple fell on his head?", options: ["A) Einstein", "B) Newton", "C) Galileo", "D) Kepler"], correctAnswer: "B" },
+            { question: "What is the chemical formula for sugar?", options: ["A) C6H12O6", "B) CO2", "C) H2O", "D) NaCl"], correctAnswer: "A" },
+            { question: "Which planet is known for its red spot?", options: ["A) Jupiter", "B) Saturn", "C) Mars", "D) Uranus"], correctAnswer: "A" },
+            { question: "What is the primary source of energy for photosynthesis?", options: ["A) Soil", "B) Water", "C) Sunlight", "D) Air"], correctAnswer: "C" },
+            { question: "Which element is essential for strong bones?", options: ["A) Iron", "B) Calcium", "C) Magnesium", "D) Potassium"], correctAnswer: "B" },
+            { question: "What is the chemical symbol for lead?", options: ["A) Pb", "B) Ld", "C) Le", "D) Pd"], correctAnswer: "A" },
+            { question: "Which gas causes the greenhouse effect?", options: ["A) Oxygen", "B) Nitrogen", "C) Carbon Dioxide", "D) Helium"], correctAnswer: "C" },
+            { question: "What is the smallest unit of life?", options: ["A) Atom", "B) Cell", "C) Molecule", "D) Organ"], correctAnswer: "B" },
+            { question: "Which scientist discovered the structure of DNA?", options: ["A) Watson and Crick", "B) Mendel", "C) Darwin", "D) Einstein"], correctAnswer: "A" },
+            { question: "What is the chemical formula for ozone?", options: ["A) O2", "B) O3", "C) CO2", "D) H2O"], correctAnswer: "B" },
+            { question: "Which planet is closest to the Sun?", options: ["A) Venus", "B) Mercury", "C) Earth", "D) Mars"], correctAnswer: "B" },
+            { question: "What is the unit of frequency?", options: ["A) Hertz", "B) Watt", "C) Ohm", "D) Volt"], correctAnswer: "A" },
+            { question: "Which gas is used in light bulbs?", options: ["A) Argon", "B) Helium", "C) Neon", "D) Oxygen"], correctAnswer: "A" },
+            { question: "What is the chemical symbol for iron?", options: ["A) Fe", "B) Ir", "C) In", "D) Io"], correctAnswer: "A" },
+            { question: "Which scientist is known for the theory of evolution?", options: ["A) Einstein", "B) Darwin", "C) Newton", "D) Galileo"], correctAnswer: "B" },
+            { question: "Which gas is used in fire extinguishers?", options: ["A) Oxygen", "B) Carbon Dioxide", "C) Nitrogen", "D) Helium"], correctAnswer: "B" },
+            { question: "What is the chemical formula for methane?", options: ["A) CH4", "B) CO2", "C) H2O", "D) NH3"], correctAnswer: "A" },
+            { question: "Which planet has the most rings?", options: ["A) Jupiter", "B) Saturn", "C) Uranus", "D) Neptune"], correctAnswer: "B" },
+            { question: "What is the unit of power?", options: ["A) Volt", "B) Watt", "C) Ohm", "D) Ampere"], correctAnswer: "B" },
+            { question: "Which gas is used in refrigerators?", options: ["A) Freon", "B) Oxygen", "C) Nitrogen", "D) Helium"], correctAnswer: "A" },
+            { question: "What is the chemical symbol for sodium?", options: ["A) Na", "B) So", "C) Sd", "D) Sn"], correctAnswer: "A" },
+            { question: "Which scientist discovered the theory of relativity?", options: ["A) Newton", "B) Einstein", "C) Galileo", "D) Kepler"], correctAnswer: "B" },
+            { question: "Which gas is used in breathing?", options: ["A) Oxygen", "B) Nitrogen", "C) Carbon Dioxide", "D) Helium"], correctAnswer: "A" },
+            { question: "What is the chemical formula for ammonia?", options: ["A) NH3", "B) CO2", "C) H2O", "D) CH4"], correctAnswer: "A" },
+            { question: "Which planet is known for its blue color?", options: ["A) Uranus", "B) Neptune", "C) Earth", "D) Mars"], correctAnswer: "B" },
+            { question: "What is the unit of energy?", options: ["A) Joule", "B) Watt", "C) Ohm", "D) Volt"], correctAnswer: "A" },
+            { question: "Which gas is used in welding?", options: ["A) Oxygen", "B) Acetylene", "C) Nitrogen", "D) Helium"], correctAnswer: "B" },
+            { question: "What is the chemical symbol for potassium?", options: ["A) K", "B) P", "C) Pt", "D) Po"], correctAnswer: "A" },
+            { question: "Which scientist discovered the laws of planetary motion?", options: ["A) Newton", "B) Kepler", "C) Galileo", "D) Einstein"], correctAnswer: "B" },
+            { question: "Which gas is used in lasers?", options: ["A) Helium", "B) Neon", "C) Argon", "D) Oxygen"], correctAnswer: "B" },
+            { question: "What is the chemical formula for carbon dioxide?", options: ["A) CO2", "B) CO", "C) H2O", "D) CH4"], correctAnswer: "A" },
+            { question: "Which planet is known for its rings?", options: ["A) Jupiter", "B) Saturn", "C) Uranus", "D) Neptune"], correctAnswer: "B" },
+            { question: "What is the unit of pressure?", options: ["A) Pascal", "B) Watt", "C) Ohm", "D) Volt"], correctAnswer: "A" },
+            { question: "Which gas is used in diving tanks?", options: ["A) Oxygen", "B) Helium", "C) Nitrogen", "D) Carbon Dioxide"], correctAnswer: "B" },
+            { question: "What is the chemical symbol for magnesium?", options: ["A) Mg", "B) Mn", "C) Mo", "D) Ma"], correctAnswer: "A" },
+            { question: "Which scientist discovered the theory of gravity?", options: ["A) Newton", "B) Einstein", "C) Galileo", "D) Kepler"], correctAnswer: "A" },
+            { question: "Which gas is used in airships?", options: ["A) Helium", "B) Hydrogen", "C) Nitrogen", "D) Oxygen"], correctAnswer: "A" },
+            { question: "What is the chemical formula for hydrochloric acid?", options: ["A) HCl", "B) H2SO4", "C) HNO3", "D) CH3COOH"], correctAnswer: "A" },
+            { question: "What is the unit of temperature?", options: ["A) Celsius", "B) Watt", "C) Ohm", "D) Volt"], correctAnswer: "A" },
+            { question: "Which gas is used in anesthesia?", options: ["A) Nitrous Oxide", "B) Oxygen", "C) Nitrogen", "D) Helium"], correctAnswer: "A" },
+            { question: "What is the chemical symbol for calcium?", options: ["A) Ca", "B) Cl", "C) Co", "D) Cu"], correctAnswer: "A" },
+            { question: "Which scientist discovered the theory of quantum mechanics?", options: ["A) Newton", "B) Einstein", "C) Planck", "D) Kepler"], correctAnswer: "C" },
+            { question: "Which gas is used in neon signs?", options: ["A) Helium", "B) Neon", "C) Argon", "D) Oxygen"], correctAnswer: "B" },
+            { question: "What is the chemical formula for sulfuric acid?", options: ["A) H2SO4", "B) HCl", "C) HNO3", "D) CH3COOH"], correctAnswer: "A" },
+            { question: "What is the unit of force?", options: ["A) Newton", "B) Watt", "C) Ohm", "D) Volt"], correctAnswer: "A" },
+            { question: "Which gas is used in scuba diving?", options: ["A) Oxygen", "B) Helium", "C) Nitrogen", "D) Carbon Dioxide"], correctAnswer: "B" },
+            { question: "What is the chemical symbol for zinc?", options: ["A) Zn", "B) Zi", "C) Zc", "D) Zr"], correctAnswer: "A" },
+            { question: "Which scientist discovered the theory of electromagnetism?", options: ["A) Newton", "B) Einstein", "C) Maxwell", "D) Kepler"], correctAnswer: "C" },
+            { question: "Which gas is used in fluorescent lights?", options: ["A) Helium", "B) Neon", "C) Argon", "D) Mercury Vapor"], correctAnswer: "D" },
+            { question: "What is the chemical formula for nitric acid?", options: ["A) HNO3", "B) HCl", "C) H2SO4", "D) CH3COOH"], correctAnswer: "A" },
+            { question: "What is the unit of electric charge?", options: ["A) Coulomb", "B) Watt", "C) Ohm", "D) Volt"], correctAnswer: "A" },
+            { question: "Which gas is used in air conditioning?", options: ["A) Freon", "B) Oxygen", "C) Nitrogen", "D) Helium"], correctAnswer: "A" },
+            { question: "What is the chemical symbol for aluminum?", options: ["A) Al", "B) Au", "C) Ag", "D) Ar"], correctAnswer: "A" },
+            { question: "Which scientist discovered the theory of black holes?", options: ["A) Newton", "B) Einstein", "C) Hawking", "D) Kepler"], correctAnswer: "C" },
+            { question: "What gas do plants primarily use for photosynthesis?", options: ["A) Oxygen", "B) Nitrogen", "C) Carbon Dioxide", "D) Helium"], correctAnswer: "C" },
+            { question: "Which element is represented by 'O'?", options: ["A) Oxygen", "B) Gold", "C) Silver", "D) Iron"], correctAnswer: "A" },
+            { question: "What is the speed of light in a vacuum (approx.)?", options: ["A) 300,000 km/s", "B) 150,000 km/s", "C) 500,000 km/s", "D) 100,000 km/s"], correctAnswer: "A" },
+            { question: "Who discovered penicillin?", options: ["A) Fleming", "B) Pasteur", "C) Lister", "D) Salk"], correctAnswer: "A" },
+            { question: "Which metal is liquid at room temperature?", options: ["A) Iron", "B) Mercury", "C) Gold", "D) Silver"], correctAnswer: "B" },
+            { question: "What is the largest organ in the human body?", options: ["A) Liver", "B) Skin", "C) Heart", "D) Brain"], correctAnswer: "B" },
+            { question: "Who is the 'Father of Modern Physics'?", options: ["A) Newton", "B) Einstein", "C) Tesla", "D) Galileo"], correctAnswer: "B" },
+            { question: "What is the hardest natural substance known?", options: ["A) Gold", "B) Iron", "C) Diamond", "D) Quartz"], correctAnswer: "C" },
+            { question: "What is the primary source of energy for Earth?", options: ["A) Wind", "B) Sun", "C) Geothermal", "D) Coal"], correctAnswer: "B" },
+            { question: "What is the chemical symbol for gold?", options: ["A) Au", "B) Ag", "C) Fe", "D) Cu"], correctAnswer: "A" },
+            { question: "What is the boiling point of water at sea level?", options: ["A) 90°C", "B) 100°C", "C) 110°C", "D) 120°C"], correctAnswer: "B" },
+            { question: "Which gas is most abundant in the Earth’s atmosphere?", options: ["A) Oxygen", "B) Nitrogen", "C) Argon", "D) Carbon Dioxide"], correctAnswer: "B" },
+            { question: "What element is the primary component of the Sun?", options: ["A) Helium", "B) Hydrogen", "C) Oxygen", "D) Carbon"], correctAnswer: "B" },
+            { question: "Who proposed the theory of evolution by natural selection?", options: ["A) Charles Darwin", "B) Gregor Mendel", "C) Albert Einstein", "D) Isaac Newton"], correctAnswer: "A" },
+            { question: "What is the unit of electrical resistance?", options: ["A) Volt", "B) Ohm", "C) Ampere", "D) Watt"], correctAnswer: "B" },
+            { question: "What is the chemical formula for table salt?", options: ["A) NaCl", "B) KCl", "C) CaCl2", "D) MgCl2"], correctAnswer: "A" },
+            { question: "Which scientist developed the laws of motion?", options: ["A) Galileo Galilei", "B) Isaac Newton", "C) Albert Einstein", "D) Niels Bohr"], correctAnswer: "B" },
+            { question: "What is the largest bone in the human body?", options: ["A) Femur", "B) Tibia", "C) Humerus", "D) Radius"], correctAnswer: "A" },
+            { question: "Which technology is used to capture images in digital cameras?", options: ["A) CCD Sensor", "B) LED", "C) LCD", "D) OLED"], correctAnswer: "A" },
+            { question: "What gas is produced during cellular respiration?", options: ["A) Oxygen", "B) Carbon Dioxide", "C) Nitrogen", "D) Hydrogen"], correctAnswer: "B" },
+            { question: "Which invention is credited to Alexander Graham Bell?", options: ["A) Telephone", "B) Telegraph", "C) Radio", "D) Television"], correctAnswer: "A" },
+            { question: "What is the pH level of pure water?", options: ["A) 5", "B) 7", "C) 9", "D) 11"], correctAnswer: "B" },
+            { question: "Which force keeps planets in orbit around the Sun?", options: ["A) Magnetic Force", "B) Gravity", "C) Friction", "D) Tension"], correctAnswer: "B" },
+            { question: "What is the main power source for most satellites?", options: ["A) Batteries", "B) Solar Panels", "C) Nuclear Reactors", "D) Fuel Cells"], correctAnswer: "B" },
+            { question: "Which gas is responsible for the green color of the aurora borealis?", options: ["A) Oxygen", "B) Nitrogen", "C) Helium", "D) Argon"], correctAnswer: "A" },
+            { question: "What is the name of the largest volcano in our solar system, located on Mars?", options: ["A) Olympus Mons", "B) Mauna Loa", "C) Mount Everest", "D) Vesuvius"], correctAnswer: "A" },
+            { question: "What is the primary function of red blood cells?", options: ["A) Fight Infection", "B) Carry Oxygen", "C) Digest Food", "D) Produce Hormones"], correctAnswer: "B" },
+            { question: "Which programming language is known for its use in web development?", options: ["A) Java", "B) Python", "C) JavaScript", "D) C++"], correctAnswer: "C" },
+            { question: "The chemical symbol for Gold is Au.", options: ["True", "False"], correctAnswer: "True", type: "true-false" },
+            { question: "What is this famous invention?", image: "https://images.fineartamerica.com/images/artworkimages/mediumlarge/1/edisons-light-bulb-1879-granger.jpg", options: ["A) Telephone", "B) Light Bulb", "C) Radio", "D) Camera"], correctAnswer: "B", type: "image-based" },
+            { question: "The movie 'Titanic' was released in the 1990s.", options: ["True", "False"], correctAnswer: "True", type: "true-false" },
+            { question: "Who is this famous character?", image: "https://static.wikia.nocookie.net/iepfanon/images/5/59/SpongeBob_SquarePants_%28SpongeBob_SquarePants%29_-_full_character_image.png/revision/latest?cb=20191127000745", options: ["A) Patrick Star", "B) SpongeBob SquarePants", "C) Squidward", "D) Mr. Krabs"], correctAnswer: "B", type: "image-based" }
+        ],
+        "Pop Culture": [
+            { question: "Who played Hermione Granger in the Harry Potter film series?", options: ["A) Emma Watson", "B) Emma Stone", "C) Natalie Portman", "D) Kristen Stewart"], correctAnswer: "A" },
+            { question: "Which band is known for the song 'Bohemian Rhapsody'?", options: ["A) The Beatles", "B) Queen", "C) The Rolling Stones", "D) Aerosmith"], correctAnswer: "B" },
+            { question: "What is the name of the fictional continent in Game of Thrones?", options: ["A) Westeros", "B) Middle-earth", "C) Narnia", "D) Pandora"], correctAnswer: "A" },
+            { question: "Who directed the movie 'The Dark Knight'?", options: ["A) Steven Spielberg", "B) Christopher Nolan", "C) Quentin Tarantino", "D) Martin Scorsese"], correctAnswer: "B" },
+            { question: "Which singer is known as the 'Queen of Pop'?", options: ["A) Madonna", "B) Beyoncé", "C) Lady Gaga", "D) Rihanna"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'The Matrix'?", options: ["A) Neo", "B) Morpheus", "C) Trinity", "D) Agent Smith"], correctAnswer: "A" },
+            { question: "Which animated movie features a lion named Simba?", options: ["A) The Jungle Book", "B) The Lion King", "C) Madagascar", "D) Zootopia"], correctAnswer: "B" },
+            { question: "Who played Captain Jack Sparrow in 'Pirates of the Caribbean'?", options: ["A) Johnny Depp", "B) Brad Pitt", "C) Tom Cruise", "D) Leonardo DiCaprio"], correctAnswer: "A" },
+            { question: "Which TV show is set in the fictional town of Hawkins, Indiana?", options: ["A) Stranger Things", "B) The Walking Dead", "C) Breaking Bad", "D) The Office"], correctAnswer: "A" },
+            { question: "Who wrote the song 'Imagine'?", options: ["A) John Lennon", "B) Paul McCartney", "C) Bob Dylan", "D) Elton John"], correctAnswer: "A" },
+            { question: "Which movie features a character named Darth Vader?", options: ["A) Star Trek", "B) Star Wars", "C) Guardians of the Galaxy", "D) The Avengers"], correctAnswer: "B" },
+            { question: "Who played the Joker in 'The Dark Knight'?", options: ["A) Heath Ledger", "B) Joaquin Phoenix", "C) Jared Leto", "D) Jack Nicholson"], correctAnswer: "A" },
+            { question: "Which band is known for the album 'Abbey Road'?", options: ["A) The Beatles", "B) The Rolling Stones", "C) The Who", "D) Pink Floyd"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Friends'?", options: ["A) Ross Geller", "B) Joey Tribbiani", "C) Chandler Bing", "D) Monica Geller"], correctAnswer: "A" },
+            { question: "Who directed 'Jurassic Park'?", options: ["A) Steven Spielberg", "B) James Cameron", "C) Ridley Scott", "D) Peter Jackson"], correctAnswer: "A" },
+            { question: "Which singer is known for the song 'Thriller'?", options: ["A) Michael Jackson", "B) Prince", "C) Elvis Presley", "D) David Bowie"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'The Wizard of Oz'?", options: ["A) Dorothy", "B) Glinda", "C) Toto", "D) Scarecrow"], correctAnswer: "A" },
+            { question: "Who played Katniss Everdeen in 'The Hunger Games'?", options: ["A) Jennifer Lawrence", "B) Scarlett Johansson", "C) Emma Watson", "D) Kristen Stewart"], correctAnswer: "A" },
+            { question: "Which TV show features a character named Sheldon Cooper?", options: ["A) The Big Bang Theory", "B) How I Met Your Mother", "C) Friends", "D) Seinfeld"], correctAnswer: "A" },
+            { question: "Who wrote the song 'Sweet Child o' Mine'?", options: ["A) Guns N' Roses", "B) Aerosmith", "C) Nirvana", "D) Metallica"], correctAnswer: "A" },
+            { question: "Which movie features a character named Woody, a cowboy doll?", options: ["A) Toy Story", "B) Shrek", "C) Finding Nemo", "D) Monsters, Inc."], correctAnswer: "A" },
+            { question: "Who played Tony Stark in 'Iron Man'?", options: ["A) Robert Downey Jr.", "B) Chris Hemsworth", "C) Chris Evans", "D) Mark Ruffalo"], correctAnswer: "A" },
+            { question: "Which band is known for the song 'Hotel California'?", options: ["A) The Eagles", "B) The Doors", "C) Fleetwood Mac", "D) The Beach Boys"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Breaking Bad'?", options: ["A) Walter White", "B) Jesse Pinkman", "C) Saul Goodman", "D) Hank Schrader"], correctAnswer: "A" },
+            { question: "Who directed 'Pulp Fiction'?", options: ["A) Quentin Tarantino", "B) Martin Scorsese", "C) Steven Spielberg", "D) Christopher Nolan"], correctAnswer: "A" },
+            { question: "Which singer is known for the song 'Like a Virgin'?", options: ["A) Madonna", "B) Cyndi Lauper", "C) Whitney Houston", "D) Mariah Carey"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'The Lord of the Rings'?", options: ["A) Frodo Baggins", "B) Gandalf", "C) Aragorn", "D) Legolas"], correctAnswer: "A" },
+            { question: "Who played Edward Scissorhands in the movie of the same name?", options: ["A) Johnny Depp", "B) Brad Pitt", "C) Tom Cruise", "D) Leonardo DiCaprio"], correctAnswer: "A" },
+            { question: "Which TV show is set in the fictional town of Springfield?", options: ["A) The Simpsons", "B) Family Guy", "C) South Park", "D) Futurama"], correctAnswer: "A" },
+            { question: "Who wrote the song 'Yesterday'?", options: ["A) Paul McCartney", "B) John Lennon", "C) George Harrison", "D) Ringo Starr"], correctAnswer: "A" },
+            { question: "Which movie features a character named Shrek?", options: ["A) Shrek", "B) The Incredibles", "C) Monsters, Inc.", "D) Finding Nemo"], correctAnswer: "A" },
+            { question: "Who played the Hulk in 'The Avengers'?", options: ["A) Mark Ruffalo", "B) Chris Hemsworth", "C) Robert Downey Jr.", "D) Chris Evans"], correctAnswer: "A" },
+            { question: "Which band is known for the song 'Smells Like Teen Spirit'?", options: ["A) Nirvana", "B) Pearl Jam", "C) Red Hot Chili Peppers", "D) The Offspring"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Seinfeld'?", options: ["A) Jerry Seinfeld", "B) George Costanza", "C) Elaine Benes", "D) Kramer"], correctAnswer: "A" },
+            { question: "Who directed 'Avatar'?", options: ["A) James Cameron", "B) Steven Spielberg", "C) Peter Jackson", "D) Ridley Scott"], correctAnswer: "A" },
+            { question: "Which singer is known for the song 'Billie Jean'?", options: ["A) Michael Jackson", "B) Prince", "C) Stevie Wonder", "D) Marvin Gaye"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Alice in Wonderland'?", options: ["A) Alice", "B) Cheshire Cat", "C) Mad Hatter", "D) White Rabbit"], correctAnswer: "A" },
+            { question: "Who played Bella Swan in 'Twilight'?", options: ["A) Kristen Stewart", "B) Emma Watson", "C) Jennifer Lawrence", "D) Scarlett Johansson"], correctAnswer: "A" },
+            { question: "Which TV show features a character named Homer Simpson?", options: ["A) The Simpsons", "B) Family Guy", "C) South Park", "D) Futurama"], correctAnswer: "A" },
+            { question: "Who wrote the song 'Purple Rain'?", options: ["A) Prince", "B) Michael Jackson", "C) David Bowie", "D) Elton John"], correctAnswer: "A" },
+            { question: "Which movie features a character named Nemo?", options: ["A) Finding Nemo", "B) The Little Mermaid", "C) Shark Tale", "D) Moana"], correctAnswer: "A" },
+            { question: "Who played Thor in 'The Avengers'?", options: ["A) Chris Hemsworth", "B) Chris Evans", "C) Robert Downey Jr.", "D) Mark Ruffalo"], correctAnswer: "A" },
+            { question: "Which band is known for the song 'Sweet Home Alabama'?", options: ["A) Lynyrd Skynyrd", "B) The Allman Brothers", "C) ZZ Top", "D) The Eagles"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'The Office' (US)?", options: ["A) Michael Scott", "B) Dwight Schrute", "C) Jim Halpert", "D) Pam Beesly"], correctAnswer: "A" },
+            { question: "Who directed 'The Godfather'?", options: ["A) Francis Ford Coppola", "B) Martin Scorsese", "C) Steven Spielberg", "D) Quentin Tarantino"], correctAnswer: "A" },
+            { question: "Which singer is known for the song 'Material Girl'?", options: ["A) Madonna", "B) Cyndi Lauper", "C) Whitney Houston", "D) Mariah Carey"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'The Hobbit'?", options: ["A) Bilbo Baggins", "B) Gandalf", "C) Thorin", "D) Smaug"], correctAnswer: "A" },
+            { question: "Who played the Mad Hatter in 'Alice in Wonderland' (2010)?", options: ["A) Johnny Depp", "B) Brad Pitt", "C) Tom Cruise", "D) Leonardo DiCaprio"], correctAnswer: "A" },
+            { question: "Danesbury Faults (2013) is set in which fictional town?", options: ["A) Hawkins", "B) Derry", "C) Castle Rock", "D) Twin Peaks"], correctAnswer: "B" },
+            { question: "Who wrote the song 'Let It Be'?", options: ["A) Paul McCartney", "B) John Lennon", "C) George Harrison", "D) Ringo Starr"], correctAnswer: "A" },
+            { question: "Which movie features a character named Buzz Lightyear?", options: ["A) Toy Story", "B) The Incredibles", "C) Monsters, Inc.", "D) Finding Nemo"], correctAnswer: "A" },
+            { question: "Who played Captain America in 'The Avengers'?", options: ["A) Chris Evans", "B) Chris Hemsworth", "C) Robert Downey Jr.", "D) Mark Ruffalo"], correctAnswer: "A" },
+            { question: "Which band is known for the song 'Stairway to Heaven'?", options: ["A) Led Zeppelin", "B) The Rolling Stones", "C) The Who", "D) Pink Floyd"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Parks and Recreation'?", options: ["A) Leslie Knope", "B) Ron Swanson", "C) Andy Dwyer", "D) April Ludgate"], correctAnswer: "A" },
+            { question: "Who directed 'E.T. the Extra-Terrestrial'?", options: ["A) Steven Spielberg", "B) James Cameron", "C) Ridley Scott", "D) Peter Jackson"], correctAnswer: "A" },
+            { question: "Which singer is known for the song 'I Will Always Love You'?", options: ["A) Whitney Houston", "B) Mariah Carey", "C) Celine Dion", "D) Dolly Parton"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Peter Pan'?", options: ["A) Peter Pan", "B) Captain Hook", "C) Wendy Darling", "D) Tinker Bell"], correctAnswer: "A" },
+            { question: "Who played Harry Potter in the film series?", options: ["A) Daniel Radcliffe", "B) Rupert Grint", "C) Tom Felton", "D) Matthew Lewis"], correctAnswer: "A" },
+            { question: "Which TV show features a character named Tony Soprano?", options: ["A) The Sopranos", "B) Breaking Bad", "C) The Wire", "D) Mad Men"], correctAnswer: "A" },
+            { question: "Who wrote the song 'Hey Jude'?", options: ["A) Paul McCartney", "B) John Lennon", "C) George Harrison", "D) Ringo Starr"], correctAnswer: "A" },
+            { question: "Which movie features a character named Mike Wazowski?", options: ["A) Monsters, Inc.", "B) The Incredibles", "C) Toy Story", "D) Finding Nemo"], correctAnswer: "A" },
+            { question: "Who played Black Widow in 'The Avengers'?", options: ["A) Scarlett Johansson", "B) Natalie Portman", "C) Jennifer Lawrence", "D) Emma Watson"], correctAnswer: "A" },
+            { question: "Which band is known for the song 'Back in Black'?", options: ["A) AC/DC", "B) Metallica", "C) Guns N' Roses", "D) Nirvana"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'Modern Family'?", options: ["A) Phil Dunphy", "B) Claire Dunphy", "C) Jay Pritchett", "D) Gloria Pritchett"], correctAnswer: "C" },
+            { question: "Who directed 'Schindler's List'?", options: ["A) Steven Spielberg", "B) Martin Scorsese", "C) Quentin Tarantino", "D) Christopher Nolan"], correctAnswer: "A" },
+            { question: "Which singer is known for the song 'Umbrella'?", options: ["A) Rihanna", "B) Beyoncé", "C) Lady Gaga", "D) Taylor Swift"], correctAnswer: "A" },
+            { question: "What is the name of the main character in 'The Little Mermaid'?", options: ["A) Ariel", "B) Ursula", "C) Sebastian", "D) Triton"], correctAnswer: "A" },
+            { question: "Who painted the Mona Lisa?", options: ["A) Van Gogh", "B) Picasso", "C) Da Vinci", "D) Monet"], correctAnswer: "C" },
+            { question: "Who wrote 'Romeo and Juliet'?", options: ["A) Dickens", "B) Shakespeare", "C) Austen", "D) Twain"], correctAnswer: "B" },
+            { question: "Who wrote 'To Kill a Mockingbird'?", options: ["A) Hemingway", "B) Harper Lee", "C) Rowling", "D) Twain"], correctAnswer: "B" },
+            { question: "Which instrument has 88 keys?", options: ["A) Guitar", "B) Piano", "C) Violin", "D) Drums"], correctAnswer: "B" },
+            { question: "Who invented the light bulb?", options: ["A) Edison", "B) Tesla", "C) Franklin", "D) Bell"], correctAnswer: "A" },
+            { question: "Which sport is played at Wimbledon?", options: ["A) Tennis", "B) Golf", "C) Cricket", "D) Rugby"], correctAnswer: "A" },
+            { question: "Who painted the 'Starry Night'?", options: ["A) Picasso", "B) Van Gogh", "C) Monet", "D) Da Vinci"], correctAnswer: "B" },
+            { question: "What is the main ingredient in guacamole?", options: ["A) Tomato", "B) Avocado", "C) Onion", "D) Pepper"], correctAnswer: "B" },
+            { question: "Which famous ship sank in 1912?", options: ["A) Lusitania", "B) Titanic", "C) Britannic", "D) Queen Mary"], correctAnswer: "B" },
+            { question: "Which fruit has seeds on the outside?", options: ["A) Apple", "B) Strawberry", "C) Banana", "D) Orange"], correctAnswer: "B" },
+            { question: "Who directed the movie 'Inception'?", options: ["A) Steven Spielberg", "B) Christopher Nolan", "C) James Cameron", "D) Peter Jackson"], correctAnswer: "B" },
+            { question: "Which band released the album 'Dark Side of the Moon'?", options: ["A) The Beatles", "B) Pink Floyd", "C) Led Zeppelin", "D) The Rolling Stones"], correctAnswer: "B" },
+            { question: "What is the name of Harry Potter’s owl?", options: ["A) Hedwig", "B) Fawkes", "C) Buckbeak", "D) Pigwidgeon"], correctAnswer: "A" },
+            { question: "Which actor played Iron Man in the Marvel Cinematic Universe?", options: ["A) Chris Hemsworth", "B) Robert Downey Jr.", "C) Chris Evans", "D) Mark Ruffalo"], correctAnswer: "B" },
+            { question: "What year did the first 'Star Wars' movie release?", options: ["A) 1975", "B) 1977", "C) 1980", "D) 1983"], correctAnswer: "B" },
+            { question: "Which TV show features a character named Walter White?", options: ["A) Game of Thrones", "B) Breaking Bad", "C) The Walking Dead", "D) Stranger Things"], correctAnswer: "B" },
+            { question: "Who sang the theme song for the James Bond film 'Skyfall'?", options: ["A) Adele", "B) Madonna", "C) Shirley Bassey", "D) Billie Eilish"], correctAnswer: "A" },
+            { question: "Which novel by J.K. Rowling introduced the wizarding world?", options: ["A) The Philosopher’s Stone", "B) The Chamber of Secrets", "C) The Prisoner of Azkaban", "D) The Goblet of Fire"], correctAnswer: "A" },
+            { question: "What is the name of the dragon in 'How to Train Your Dragon'?", options: ["A) Toothless", "B) Smaug", "C) Drogon", "D) Norbert"], correctAnswer: "A" },
+            { question: "Which pop star is known for the hit 'Bad Guy'?", options: ["A) Ariana Grande", "B) Billie Eilish", "C) Taylor Swift", "D) Lady Gaga"], correctAnswer: "B" },
+            { question: "Who played the lead role in 'The Lord of the Rings' trilogy as Frodo?", options: ["A) Elijah Wood", "B) Ian McKellen", "C) Orlando Bloom", "D) Sean Bean"], correctAnswer: "A" },
+            { question: "Which movie won the Best Picture Oscar in 2020?", options: ["A) Parasite", "B) 1917", "C) Joker", "D) The Irishman"], correctAnswer: "A" },
+            { question: "What is the name of the fictional school in 'Glee'?", options: ["A) McKinley High", "B) Dalton Academy", "C) Carmel High", "D) Westside High"], correctAnswer: "A" },
+            { question: "Which artist painted 'The Scream'?", options: ["A) Pablo Picasso", "B) Vincent van Gogh", "C) Edvard Munch", "D) Claude Monet"], correctAnswer: "C" },
+            { question: "Which band performed at Woodstock in 1969?", options: ["A) The Who", "B) The Doors", "C) Jimi Hendrix", "D) Grateful Dead"], correctAnswer: "C" },
+            { question: "Who directed 'Titanic'?", options: ["A) Steven Spielberg", "B) James Cameron", "C) Ridley Scott", "D) David Fincher"], correctAnswer: "B" },
+            { question: "Which character is known for the catchphrase 'Yabba Dabba Doo!'?", options: ["A) Fred Flintstone", "B) Barney Rubble", "C) George Jetson", "D) Homer Simpson"], correctAnswer: "A" },
+            { question: "What is the name of the spaceship in 'Star Trek'?", options: ["A) Millennium Falcon", "B) Enterprise", "C) Serenity", "D) Galactica"], correctAnswer: "B" },
+            { question: "Which actor played Jack Dawson in 'Titanic'?", options: ["A) Leonardo DiCaprio", "B) Tom Hanks", "C) Brad Pitt", "D) Johnny Depp"], correctAnswer: "A" }
+        ],
+        "History": [
+            { question: "Which year marked the start of World War I?", options: ["A) 1910", "B) 1914", "C) 1918", "D) 1920"], correctAnswer: "B" },
+            { question: "Who was the first female Prime Minister of the UK?", options: ["A) Margaret Thatcher", "B) Theresa May", "C) Angela Merkel", "D) Indira Gandhi"], correctAnswer: "A" },
+            { question: "Which ancient civilization built Machu Picchu?", options: ["A) Aztec", "B) Inca", "C) Maya", "D) Olmec"], correctAnswer: "B" },
+            { question: "What year did the Titanic sink?", options: ["A) 1905", "B) 1912", "C) 1915", "D) 1920"], correctAnswer: "B" },
+            { question: "Who was the first Roman Emperor to convert to Christianity?", options: ["A) Nero", "B) Constantine", "C) Julius Caesar", "D) Augustus"], correctAnswer: "B" },
+            { question: "Which country was the first to land a man on the moon?", options: ["A) USA", "B) USSR", "C) China", "D) Germany"], correctAnswer: "A" },
+            { question: "What year did the Spanish Armada attempt to invade England?", options: ["A) 1492", "B) 1588", "C) 1620", "D) 1715"], correctAnswer: "B" },
+            { question: "Who was the leader of the Bolshevik Revolution in Russia?", options: ["A) Vladimir Lenin", "B) Joseph Stalin", "C) Leon Trotsky", "D) Nikita Khrushchev"], correctAnswer: "A" },
+            { question: "Which ancient wonder was located in Babylon?", options: ["A) Hanging Gardens", "B) Colossus of Rhodes", "C) Lighthouse of Alexandria", "D) Statue of Zeus"], correctAnswer: "A" },
+            { question: "What year did the American Revolution begin?", options: ["A) 1770", "B) 1775", "C) 1781", "D) 1789"], correctAnswer: "B" },
+            { question: "Who was the first European to reach India by sea?", options: ["A) Christopher Columbus", "B) Vasco da Gama", "C) Ferdinand Magellan", "D) Marco Polo"], correctAnswer: "B" },
+            { question: "Which war ended with the Treaty of Versailles?", options: ["A) World War I", "B) World War II", "C) Napoleonic Wars", "D) Seven Years' War"], correctAnswer: "A" },
+            { question: "Who was the first President of the United States?", options: ["A) Thomas Jefferson", "B) George Washington", "C) John Adams", "D) Benjamin Franklin"], correctAnswer: "B" },
+            { question: "Which ancient Greek city-state was known for its military culture?", options: ["A) Athens", "B) Sparta", "C) Thebes", "D) Corinth"], correctAnswer: "B" },
+            { question: "What year did the Wright brothers achieve the first powered flight?", options: ["A) 1895", "B) 1903", "C) 1910", "D) 1920"], correctAnswer: "B" },
+            { question: "Who was the first female aviator to fly solo across the Atlantic?", options: ["A) Amelia Earhart", "B) Bessie Coleman", "C) Harriet Quimby", "D) Jacqueline Cochran"], correctAnswer: "A" },
+            { question: "Which empire built the Colosseum in Rome?", options: ["A) Roman Empire", "B) Byzantine Empire", "C) Ottoman Empire", "D) Holy Roman Empire"], correctAnswer: "A" },
+            { question: "What year did the Great Fire of London occur?", options: ["A) 1600", "B) 1666", "C) 1700", "D) 1750"], correctAnswer: "B" },
+            { question: "Who was the first African American President of the United States?", options: ["A) Barack Obama", "B) Colin Powell", "C) Jesse Jackson", "D) Al Sharpton"], correctAnswer: "A" },
+            { question: "Which ancient civilization invented the wheel?", options: ["A) Mesopotamian", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "A" },
+            { question: "What year did the Russian Revolution begin?", options: ["A) 1905", "B) 1917", "C) 1925", "D) 1930"], correctAnswer: "B" },
+            { question: "Who was the first explorer to circumnavigate the globe?", options: ["A) Christopher Columbus", "B) Ferdinand Magellan", "C) Vasco da Gama", "D) James Cook"], correctAnswer: "B" },
+            { question: "Which war was fought between the North and South of the United States?", options: ["A) Revolutionary War", "B) Civil War", "C) War of 1812", "D) Spanish-American War"], correctAnswer: "B" },
+            { question: "What year did the Black Death reach Europe?", options: ["A) 1300", "B) 1347", "C) 1400", "D) 1450"], correctAnswer: "B" },
+            { question: "Who was the first woman to win two Nobel Prizes?", options: ["A) Marie Curie", "B) Jane Addams", "C) Dorothy Hodgkin", "D) Rosalind Franklin"], correctAnswer: "A" },
+            { question: "Which empire was known for its road system and Machu Picchu?", options: ["A) Aztec", "B) Inca", "C) Maya", "D) Olmec"], correctAnswer: "B" },
+            { question: "What year did the Battle of Hastings occur?", options: ["A) 1066", "B) 1100", "C) 1200", "D) 1300"], correctAnswer: "A" },
+            { question: "Who was the first President of South Africa after apartheid?", options: ["A) Nelson Mandela", "B) Thabo Mbeki", "C) Jacob Zuma", "D) F.W. de Klerk"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed cuneiform writing?", options: ["A) Sumerian", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "A" },
+            { question: "What year did the Suez Canal open?", options: ["A) 1850", "B) 1869", "C) 1880", "D) 1900"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of England?", options: ["A) Queen Elizabeth I", "B) Queen Mary I", "C) Lady Jane Grey", "D) Queen Victoria"], correctAnswer: "B" },
+            { question: "Which war ended with the Treaty of Paris in 1783?", options: ["A) American Revolutionary War", "B) French and Indian War", "C) Seven Years' War", "D) War of 1812"], correctAnswer: "A" },
+            { question: "Who was the first European to discover Australia?", options: ["A) James Cook", "B) Willem Janszoon", "C) Abel Tasman", "D) Francis Drake"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Parthenon?", options: ["A) Roman", "B) Greek", "C) Egyptian", "D) Persian"], correctAnswer: "B" },
+            { question: "What year did the Battle of Waterloo take place?", options: ["A) 1800", "B) 1815", "C) 1820", "D) 1830"], correctAnswer: "B" },
+            { question: "Who was the first woman to serve as U.S. Secretary of State?", options: ["A) Madeleine Albright", "B) Condoleezza Rice", "C) Hillary Clinton", "D) Janet Reno"], correctAnswer: "A" },
+            { question: "Which empire was known for its Terracotta Army?", options: ["A) Roman Empire", "B) Qin Dynasty", "C) Ottoman Empire", "D) Byzantine Empire"], correctAnswer: "B" },
+            { question: "What year did the California Gold Rush begin?", options: ["A) 1840", "B) 1849", "C) 1855", "D) 1860"], correctAnswer: "B" },
+            { question: "Who was the first President of the Confederate States of America?", options: ["A) Jefferson Davis", "B) Robert E. Lee", "C) Stonewall Jackson", "D) Alexander Stephens"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed hieroglyphics?", options: ["A) Mesopotamian", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "B" },
+            { question: "What year did the Panama Canal open?", options: ["A) 1900", "B) 1914", "C) 1920", "D) 1930"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of Spain?", options: ["A) Queen Isabella I", "B) Queen Joanna", "C) Queen Maria", "D) Queen Sofia"], correctAnswer: "A" },
+            { question: "Which war ended with the Treaty of Guadalupe Hidalgo?", options: ["A) Mexican-American War", "B) Spanish-American War", "C) Texas Revolution", "D) War of 1812"], correctAnswer: "A" },
+            { question: "Who was the first European to discover New Zealand?", options: ["A) James Cook", "B) Abel Tasman", "C) Willem Janszoon", "D) Francis Drake"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Acropolis?", options: ["A) Roman", "B) Greek", "C) Egyptian", "D) Persian"], correctAnswer: "B" },
+            { question: "What year did the Battle of Gettysburg occur?", options: ["A) 1860", "B) 1863", "C) 1865", "D) 1870"], correctAnswer: "B" },
+            { question: "Who was the first woman to serve as Prime Minister of India?", options: ["A) Indira Gandhi", "B) Sonia Gandhi", "C) Pratibha Patil", "D) Sarojini Naidu"], correctAnswer: "A" },
+            { question: "Which empire was known for its Silk Road trade routes?", options: ["A) Roman Empire", "B) Han Dynasty", "C) Ottoman Empire", "D) Byzantine Empire"], correctAnswer: "B" },
+            { question: "What year did the Klondike Gold Rush begin?", options: ["A) 1880", "B) 1896", "C) 1900", "D) 1910"], correctAnswer: "B" },
+            { question: "Who was the first President of the Republic of Texas?", options: ["A) Sam Houston", "B) Stephen F. Austin", "C) Davy Crockett", "D) Jim Bowie"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed the first alphabet?", options: ["A) Phoenician", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "A" },
+            { question: "What year did the Berlin Airlift begin?", options: ["A) 1940", "B) 1948", "C) 1950", "D) 1960"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of France?", options: ["A) Catherine de' Medici", "B) Marie Antoinette", "C) Anne of Austria", "D) Joan of Arc"], correctAnswer: "A" },
+            { question: "Which war ended with the Treaty of Tordesillas?", options: ["A) War of the Roses", "B) Reconquista", "C) Hundred Years' War", "D) None of the above"], correctAnswer: "D" },
+            { question: "Who was the first European to discover the Americas?", options: ["A) Christopher Columbus", "B) Leif Erikson", "C) Vasco da Gama", "D) Ferdinand Magellan"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Great Wall of China?", options: ["A) Han Dynasty", "B) Qin Dynasty", "C) Tang Dynasty", "D) Song Dynasty"], correctAnswer: "B" },
+            { question: "What year did the Battle of Thermopylae occur?", options: ["A) 300 BC", "B) 480 BC", "C) 490 BC", "D) 500 BC"], correctAnswer: "B" },
+            { question: "Who was the first woman to serve as Prime Minister of Israel?", options: ["A) Golda Meir", "B) Tzipi Livni", "C) Shimon Peres", "D) Yitzhak Rabin"], correctAnswer: "A" },
+            { question: "Which empire was known for its Pax Romana?", options: ["A) Roman Empire", "B) Byzantine Empire", "C) Ottoman Empire", "D) Holy Roman Empire"], correctAnswer: "A" },
+            { question: "What year did the Indian Rebellion of 1857 begin?", options: ["A) 1840", "B) 1857", "C) 1860", "D) 1870"], correctAnswer: "B" },
+            { question: "Who was the first President of the Republic of China?", options: ["A) Sun Yat-sen", "B) Chiang Kai-shek", "C) Mao Zedong", "D) Deng Xiaoping"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed the concept of zero?", options: ["A) Mesopotamian", "B) Egyptian", "C) Indian", "D) Roman"], correctAnswer: "C" },
+            { question: "What year did the Korean War begin?", options: ["A) 1945", "B) 1950", "C) 1955", "D) 1960"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of Russia?", options: ["A) Catherine the Great", "B) Elizabeth of Russia", "C) Anna of Russia", "D) Maria of Russia"], correctAnswer: "A" },
+            { question: "Which war ended with the Treaty of Westphalia?", options: ["A) Thirty Years' War", "B) Hundred Years' War", "C) Seven Years' War", "D) War of the Roses"], correctAnswer: "A" },
+            { question: "Who was the first European to discover the Pacific Ocean?", options: ["A) Christopher Columbus", "B) Vasco Núñez de Balboa", "C) Ferdinand Magellan", "D) James Cook"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Hagia Sophia?", options: ["A) Roman Empire", "B) Byzantine Empire", "C) Ottoman Empire", "D) Greek Empire"], correctAnswer: "B" },
+            { question: "What year did the Cuban Missile Crisis occur?", options: ["A) 1955", "B) 1962", "C) 1965", "D) 1970"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of Austria?", options: ["A) Maria Theresa", "B) Elisabeth of Austria", "C) Maria Anna", "D) Maria Leopoldina"], correctAnswer: "A" },
+            { question: "What year did World War II end?", options: ["A) 1943", "B) 1945", "C) 1947", "D) 1950"], correctAnswer: "B" },
+            { question: "Who was the first President of the United States?", options: ["A) Lincoln", "B) Washington", "C) Jefferson", "D) Adams"], correctAnswer: "B" },
+            { question: "Which country hosted the 2016 Summer Olympics?", options: ["A) China", "B) Brazil", "C) UK", "D) USA"], correctAnswer: "B" },
+            { question: "Which country gifted the Statue of Liberty to the USA?", options: ["A) France", "B) England", "C) Spain", "D) Germany"], correctAnswer: "A" },
+            { question: "What is the capital of Egypt?", options: ["A) Cairo", "B) Alexandria", "C) Giza", "D) Luxor"], correctAnswer: "A" },
+            { question: "What is the capital of Russia?", options: ["A) St. Petersburg", "B) Moscow", "C) Kiev", "D) Minsk"], correctAnswer: "B" },
+            { question: "What is the capital of Italy?", options: ["A) Milan", "B) Venice", "C) Rome", "D) Florence"], correctAnswer: "C" },
+            { question: "What is the capital of Canada?", options: ["A) Toronto", "B) Vancouver", "C) Ottawa", "D) Montreal"], correctAnswer: "C" },
+            { question: "What is the capital of South Africa?", options: ["A) Johannesburg", "B) Cape Town", "C) Pretoria", "D) Durban"], correctAnswer: "C" },
+            { question: "Which country is known as the Land of the Rising Sun?", options: ["A) China", "B) Japan", "C) Korea", "D) Thailand"], correctAnswer: "B" },
+            { question: "In which year did Christopher Columbus first reach the Americas?", options: ["A) 1492", "B) 1453", "C) 1519", "D) 1607"], correctAnswer: "A" },
+            { question: "Who was the leader of the Soviet Union during World War II?", options: ["A) Vladimir Lenin", "B) Joseph Stalin", "C) Nikita Khrushchev", "D) Leon Trotsky"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the pyramids of Giza?", options: ["A) Romans", "B) Greeks", "C) Egyptians", "D) Mesopotamians"], correctAnswer: "C" },
+            { question: "What year did the Berlin Wall fall?", options: ["A) 1985", "B) 1989", "C) 1991", "D) 1995"], correctAnswer: "B" },
+            { question: "Who was the first Emperor of Rome?", options: ["A) Julius Caesar", "B) Augustus", "C) Nero", "D) Trajan"], correctAnswer: "B" },
+            { question: "Which country was responsible for the Industrial Revolution?", options: ["A) France", "B) Germany", "C) United Kingdom", "D) United States"], correctAnswer: "C" },
+            { question: "In which year did the American Civil War end?", options: ["A) 1861", "B) 1865", "C) 1870", "D) 1877"], correctAnswer: "B" },
+            { question: "Who was the first woman to win a Nobel Prize?", options: ["A) Marie Curie", "B) Jane Addams", "C) Pearl Buck", "D) Mother Teresa"], correctAnswer: "A" },
+            { question: "Which empire ruled much of the Mediterranean before Rome?", options: ["A) Persian", "B) Greek", "C) Carthaginian", "D) Egyptian"], correctAnswer: "B" },
+            { question: "What year did the French Revolution begin?", options: ["A) 1776", "B) 1789", "C) 1793", "D) 1804"], correctAnswer: "B" },
+            { question: "Which explorer discovered the Pacific Ocean for Europe?", options: ["A) Christopher Columbus", "B) Ferdinand Magellan", "C) Vasco da Gama", "D) James Cook"], correctAnswer: "B" },
+            { question: "Who was the Pharaoh of Egypt during the Exodus, according to the Bible?", options: ["A) Ramses II", "B) Tutankhamun", "C) Akhenaten", "D) Hatshepsut"], correctAnswer: "A" },
+            { question: "In which year did the United States declare independence?", options: ["A) 1774", "B) 1776", "C) 1781", "D) 1783"], correctAnswer: "B" },
+            { question: "Which country was the first to grant women the right to vote?", options: ["A) United States", "B) New Zealand", "C) Sweden", "D) Australia"], correctAnswer: "B" },
+            { question: "Who was the leader of Nazi Germany during World War II?", options: ["A) Benito Mussolini", "B) Adolf Hitler", "C) Joseph Goebbels", "D) Heinrich Himmler"], correctAnswer: "B" },
+            { question: "Which ancient city was buried by the eruption of Mount Vesuvius in 79 AD?", options: ["A) Pompeii", "B) Athens", "C) Sparta", "D) Rome"], correctAnswer: "A" },
+            { question: "What year did the Magna Carta get signed?", options: ["A) 1066", "B) 1215", "C) 1327", "D) 1492"], correctAnswer: "B" },
+            { question: "Which empire ruled India before British colonization?", options: ["A) Mughal", "B) Maurya", "C) Gupta", "D) Chola"], correctAnswer: "A" },
+            { question: "Who was the first man to walk on the moon?", options: ["A) Yuri Gagarin", "B) Neil Armstrong", "C) Buzz Aldrin", "D) Alan Shepard"], correctAnswer: "B" },
+            { question: "Which war was fought between 1914 and 1918?", options: ["A) World War I", "B) World War II", "C) Korean War", "D) Vietnam War"], correctAnswer: "A" }
+        ],
+        "Sports": [
+            { question: "Which year marked the start of World War I?", options: ["A) 1910", "B) 1914", "C) 1918", "D) 1920"], correctAnswer: "B" },
+            { question: "Who was the first female Prime Minister of the UK?", options: ["A) Margaret Thatcher", "B) Theresa May", "C) Angela Merkel", "D) Indira Gandhi"], correctAnswer: "A" },
+            { question: "Which ancient civilization built Machu Picchu?", options: ["A) Aztec", "B) Inca", "C) Maya", "D) Olmec"], correctAnswer: "B" },
+            { question: "What year did the Titanic sink?", options: ["A) 1905", "B) 1912", "C) 1915", "D) 1920"], correctAnswer: "B" },
+            { question: "Who was the first Roman Emperor to convert to Christianity?", options: ["A) Nero", "B) Constantine", "C) Julius Caesar", "D) Augustus"], correctAnswer: "B" },
+            { question: "Which country was the first to land a man on the moon?", options: ["A) USA", "B) USSR", "C) China", "D) Germany"], correctAnswer: "A" },
+            { question: "What year did the Spanish Armada attempt to invade England?", options: ["A) 1492", "B) 1588", "C) 1620", "D) 1715"], correctAnswer: "B" },
+            { question: "Who was the leader of the Bolshevik Revolution in Russia?", options: ["A) Vladimir Lenin", "B) Joseph Stalin", "C) Leon Trotsky", "D) Nikita Khrushchev"], correctAnswer: "A" },
+            { question: "Which ancient wonder was located in Babylon?", options: ["A) Hanging Gardens", "B) Colossus of Rhodes", "C) Lighthouse of Alexandria", "D) Statue of Zeus"], correctAnswer: "A" },
+            { question: "What year did the American Revolution begin?", options: ["A) 1770", "B) 1775", "C) 1781", "D) 1789"], correctAnswer: "B" },
+            { question: "Who was the first European to reach India by sea?", options: ["A) Christopher Columbus", "B) Vasco da Gama", "C) Ferdinand Magellan", "D) Marco Polo"], correctAnswer: "B" },
+            { question: "Which war ended with the Treaty of Versailles?", options: ["A) World War I", "B) World War II", "C) Napoleonic Wars", "D) Seven Years' War"], correctAnswer: "A" },
+            { question: "Who was the first President of the United States?", options: ["A) Thomas Jefferson", "B) George Washington", "C) John Adams", "D) Benjamin Franklin"], correctAnswer: "B" },
+            { question: "Which ancient Greek city-state was known for its military culture?", options: ["A) Athens", "B) Sparta", "C) Thebes", "D) Corinth"], correctAnswer: "B" },
+            { question: "What year did the Wright brothers achieve the first powered flight?", options: ["A) 1895", "B) 1903", "C) 1910", "D) 1920"], correctAnswer: "B" },
+            { question: "Who was the first female aviator to fly solo across the Atlantic?", options: ["A) Amelia Earhart", "B) Bessie Coleman", "C) Harriet Quimby", "D) Jacqueline Cochran"], correctAnswer: "A" },
+            { question: "Which empire built the Colosseum in Rome?", options: ["A) Roman Empire", "B) Byzantine Empire", "C) Ottoman Empire", "D) Holy Roman Empire"], correctAnswer: "A" },
+            { question: "What year did the Great Fire of London occur?", options: ["A) 1600", "B) 1666", "C) 1700", "D) 1750"], correctAnswer: "B" },
+            { question: "Who was the first African American President of the United States?", options: ["A) Barack Obama", "B) Colin Powell", "C) Jesse Jackson", "D) Al Sharpton"], correctAnswer: "A" },
+            { question: "Which ancient civilization invented the wheel?", options: ["A) Mesopotamian", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "A" },
+            { question: "What year did the Russian Revolution begin?", options: ["A) 1905", "B) 1917", "C) 1925", "D) 1930"], correctAnswer: "B" },
+            { question: "Who was the first explorer to circumnavigate the globe?", options: ["A) Christopher Columbus", "B) Ferdinand Magellan", "C) Vasco da Gama", "D) James Cook"], correctAnswer: "B" },
+            { question: "Which war was fought between the North and South of the United States?", options: ["A) Revolutionary War", "B) Civil War", "C) War of 1812", "D) Spanish-American War"], correctAnswer: "B" },
+            { question: "What year did the Black Death reach Europe?", options: ["A) 1300", "B) 1347", "C) 1400", "D) 1450"], correctAnswer: "B" },
+            { question: "Who was the first woman to win two Nobel Prizes?", options: ["A) Marie Curie", "B) Jane Addams", "C) Dorothy Hodgkin", "D) Rosalind Franklin"], correctAnswer: "A" },
+            { question: "Which empire was known for its road system and Machu Picchu?", options: ["A) Aztec", "B) Inca", "C) Maya", "D) Olmec"], correctAnswer: "B" },
+            { question: "What year did the Battle of Hastings occur?", options: ["A) 1066", "B) 1100", "C) 1200", "D) 1300"], correctAnswer: "A" },
+            { question: "Who was the first President of South Africa after apartheid?", options: ["A) Nelson Mandela", "B) Thabo Mbeki", "C) Jacob Zuma", "D) F.W. de Klerk"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed cuneiform writing?", options: ["A) Sumerian", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "A" },
+            { question: "What year did the Suez Canal open?", options: ["A) 1850", "B) 1869", "C) 1880", "D) 1900"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of England?", options: ["A) Queen Elizabeth I", "B) Queen Mary I", "C) Lady Jane Grey", "D) Queen Victoria"], correctAnswer: "B" },
+            { question: "Which war ended with the Treaty of Paris in 1783?", options: ["A) American Revolutionary War", "B) French and Indian War", "C) Seven Years' War", "D) War of 1812"], correctAnswer: "A" },
+            { question: "Who was the first European to discover Australia?", options: ["A) James Cook", "B) Willem Janszoon", "C) Abel Tasman", "D) Francis Drake"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Parthenon?", options: ["A) Roman", "B) Greek", "C) Egyptian", "D) Persian"], correctAnswer: "B" },
+            { question: "What year did the Battle of Waterloo take place?", options: ["A) 1800", "B) 1815", "C) 1820", "D) 1830"], correctAnswer: "B" },
+            { question: "Who was the first woman to serve as U.S. Secretary of State?", options: ["A) Madeleine Albright", "B) Condoleezza Rice", "C) Hillary Clinton", "D) Janet Reno"], correctAnswer: "A" },
+            { question: "Which empire was known for its Terracotta Army?", options: ["A) Roman Empire", "B) Qin Dynasty", "C) Ottoman Empire", "D) Byzantine Empire"], correctAnswer: "B" },
+            { question: "What year did the California Gold Rush begin?", options: ["A) 1840", "B) 1849", "C) 1855", "D) 1860"], correctAnswer: "B" },
+            { question: "Who was the first President of the Confederate States of America?", options: ["A) Jefferson Davis", "B) Robert E. Lee", "C) Stonewall Jackson", "D) Alexander Stephens"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed hieroglyphics?", options: ["A) Mesopotamian", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "B" },
+            { question: "What year did the Panama Canal open?", options: ["A) 1900", "B) 1914", "C) 1920", "D) 1930"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of Spain?", options: ["A) Queen Isabella I", "B) Queen Joanna", "C) Queen Maria", "D) Queen Sofia"], correctAnswer: "A" },
+            { question: "Which war ended with the Treaty of Guadalupe Hidalgo?", options: ["A) Mexican-American War", "B) Spanish-American War", "C) Texas Revolution", "D) War of 1812"], correctAnswer: "A" },
+            { question: "Who was the first European to discover New Zealand?", options: ["A) James Cook", "B) Abel Tasman", "C) Willem Janszoon", "D) Francis Drake"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Acropolis?", options: ["A) Roman", "B) Greek", "C) Egyptian", "D) Persian"], correctAnswer: "B" },
+            { question: "What year did the Battle of Gettysburg occur?", options: ["A) 1860", "B) 1863", "C) 1865", "D) 1870"], correctAnswer: "B" },
+            { question: "Who was the first woman to serve as Prime Minister of India?", options: ["A) Indira Gandhi", "B) Sonia Gandhi", "C) Pratibha Patil", "D) Sarojini Naidu"], correctAnswer: "A" },
+            { question: "Which empire was known for its Silk Road trade routes?", options: ["A) Roman Empire", "B) Han Dynasty", "C) Ottoman Empire", "D) Byzantine Empire"], correctAnswer: "B" },
+            { question: "What year did the Klondike Gold Rush begin?", options: ["A) 1880", "B) 1896", "C) 1900", "D) 1910"], correctAnswer: "B" },
+            { question: "Who was the first President of the Republic of Texas?", options: ["A) Sam Houston", "B) Stephen F. Austin", "C) Davy Crockett", "D) Jim Bowie"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed the first alphabet?", options: ["A) Phoenician", "B) Egyptian", "C) Chinese", "D) Roman"], correctAnswer: "A" },
+            { question: "What year did the Berlin Airlift begin?", options: ["A) 1940", "B) 1948", "C) 1950", "D) 1960"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of France?", options: ["A) Catherine de' Medici", "B) Marie Antoinette", "C) Anne of Austria", "D) Joan of Arc"], correctAnswer: "A" },
+            { question: "Which war ended with the Treaty of Tordesillas?", options: ["A) War of the Roses", "B) Reconquista", "C) Hundred Years' War", "D) None of the above"], correctAnswer: "D" },
+            { question: "Who was the first European to discover the Americas?", options: ["A) Christopher Columbus", "B) Leif Erikson", "C) Vasco da Gama", "D) Ferdinand Magellan"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Great Wall of China?", options: ["A) Han Dynasty", "B) Qin Dynasty", "C) Tang Dynasty", "D) Song Dynasty"], correctAnswer: "B" },
+            { question: "What year did the Battle of Thermopylae occur?", options: ["A) 300 BC", "B) 480 BC", "C) 490 BC", "D) 500 BC"], correctAnswer: "B" },
+            { question: "Who was the first woman to serve as Prime Minister of Israel?", options: ["A) Golda Meir", "B) Tzipi Livni", "C) Shimon Peres", "D) Yitzhak Rabin"], correctAnswer: "A" },
+            { question: "Which empire was known for its Pax Romana?", options: ["A) Roman Empire", "B) Byzantine Empire", "C) Ottoman Empire", "D) Holy Roman Empire"], correctAnswer: "A" },
+            { question: "What year did the Indian Rebellion of 1857 begin?", options: ["A) 1840", "B) 1857", "C) 1860", "D) 1870"], correctAnswer: "B" },
+            { question: "Who was the first President of the Republic of China?", options: ["A) Sun Yat-sen", "B) Chiang Kai-shek", "C) Mao Zedong", "D) Deng Xiaoping"], correctAnswer: "A" },
+            { question: "Which ancient civilization developed the concept of zero?", options: ["A) Mesopotamian", "B) Egyptian", "C) Indian", "D) Roman"], correctAnswer: "C" },
+            { question: "What year did the Korean War begin?", options: ["A) 1945", "B) 1950", "C) 1955", "D) 1960"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of Russia?", options: ["A) Catherine the Great", "B) Elizabeth of Russia", "C) Anna of Russia", "D) Maria of Russia"], correctAnswer: "A" },
+            { question: "Which war ended with the Treaty of Westphalia?", options: ["A) Thirty Years' War", "B) Hundred Years' War", "C) Seven Years' War", "D) War of the Roses"], correctAnswer: "A" },
+            { question: "Who was the first European to discover the Pacific Ocean?", options: ["A) Christopher Columbus", "B) Vasco Núñez de Balboa", "C) Ferdinand Magellan", "D) James Cook"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the Hagia Sophia?", options: ["A) Roman Empire", "B) Byzantine Empire", "C) Ottoman Empire", "D) Greek Empire"], correctAnswer: "B" },
+            { question: "What year did the Cuban Missile Crisis occur?", options: ["A) 1955", "B) 1962", "C) 1965", "D) 1970"], correctAnswer: "B" },
+            { question: "Who was the first female monarch of Austria?", options: ["A) Maria Theresa", "B) Elisabeth of Austria", "C) Maria Anna", "D) Maria Leopoldina"], correctAnswer: "A" },
+            { question: "What year did World War II end?", options: ["A) 1943", "B) 1945", "C) 1947", "D) 1950"], correctAnswer: "B" },
+            { question: "Which country hosted the 2016 Summer Olympics?", options: ["A) China", "B) Brazil", "C) UK", "D) USA"], correctAnswer: "B" },
+            { question: "Which country gifted the Statue of Liberty to the USA?", options: ["A) France", "B) England", "C) Spain", "D) Germany"], correctAnswer: "A" },
+            { question: "What is the capital of Egypt?", options: ["A) Cairo", "B) Alexandria", "C) Giza", "D) Luxor"], correctAnswer: "A" },
+            { question: "What is the capital of Russia?", options: ["A) St. Petersburg", "B) Moscow", "C) Kiev", "D) Minsk"], correctAnswer: "B" },
+            { question: "What is the capital of Italy?", options: ["A) Milan", "B) Venice", "C) Rome", "D) Florence"], correctAnswer: "C" },
+            { question: "What is the capital of Canada?", options: ["A) Toronto", "B) Vancouver", "C) Ottawa", "D) Montreal"], correctAnswer: "C" },
+            { question: "What is the capital of South Africa?", options: ["A) Johannesburg", "B) Cape Town", "C) Pretoria", "D) Durban"], correctAnswer: "C" },
+            { question: "Which country is known as the Land of the Rising Sun?", options: ["A) China", "B) Japan", "C) Korea", "D) Thailand"], correctAnswer: "B" },
+            { question: "In which year did Christopher Columbus first reach the Americas?", options: ["A) 1492", "B) 1453", "C) 1519", "D) 1607"], correctAnswer: "A" },
+            { question: "Who was the leader of the Soviet Union during World War II?", options: ["A) Vladimir Lenin", "B) Joseph Stalin", "C) Nikita Khrushchev", "D) Leon Trotsky"], correctAnswer: "B" },
+            { question: "Which ancient civilization built the pyramids of Giza?", options: ["A) Romans", "B) Greeks", "C) Egyptians", "D) Mesopotamians"], correctAnswer: "C" },
+            { question: "What year did the Berlin Wall fall?", options: ["A) 1985", "B) 1989", "C) 1991", "D) 1995"], correctAnswer: "B" },
+            { question: "Who was the first Emperor of Rome?", options: ["A) Julius Caesar", "B) Augustus", "C) Nero", "D) Trajan"], correctAnswer: "B" },
+            { question: "Which country was responsible for the Industrial Revolution?", options: ["A) France", "B) Germany", "C) United Kingdom", "D) United States"], correctAnswer: "C" },
+            { question: "In which year did the American Civil War end?", options: ["A) 1861", "B) 1865", "C) 1870", "D) 1877"], correctAnswer: "B" },
+            { question: "Who was the first woman to win a Nobel Prize?", options: ["A) Marie Curie", "B) Jane Addams", "C) Pearl Buck", "D) Mother Teresa"], correctAnswer: "A" },
+            { question: "Which empire ruled much of the Mediterranean before Rome?", options: ["A) Persian", "B) Greek", "C) Carthaginian", "D) Egyptian"], correctAnswer: "B" },
+            { question: "What year did the French Revolution begin?", options: ["A) 1776", "B) 1789", "C) 1793", "D) 1804"], correctAnswer: "B" },
+            { question: "Which explorer discovered the Pacific Ocean for Europe?", options: ["A) Christopher Columbus", "B) Ferdinand Magellan", "C) Vasco da Gama", "D) James Cook"], correctAnswer: "B" },
+            { question: "Who was the Pharaoh of Egypt during the Exodus, according to the Bible?", options: ["A) Ramses II", "B) Tutankhamun", "C) Akhenaten", "D) Hatshepsut"], correctAnswer: "A" },
+            { question: "In which year did the United States declare independence?", options: ["A) 1774", "B) 1776", "C) 1781", "D) 1783"], correctAnswer: "B" },
+            { question: "Which country was the first to grant women the right to vote?", options: ["A) United States", "B) New Zealand", "C) Sweden", "D) Australia"], correctAnswer: "B" },
+            { question: "Who was the leader of Nazi Germany during World War II?", options: ["A) Benito Mussolini", "B) Adolf Hitler", "C) Joseph Goebbels", "D) Heinrich Himmler"], correctAnswer: "B" },
+            { question: "Which ancient city was buried by the eruption of Mount Vesuvius in 79 AD?", options: ["A) Pompeii", "B) Athens", "C) Sparta", "D) Rome"], correctAnswer: "A" },
+            { question: "What year did the Magna Carta get signed?", options: ["A) 1066", "B) 1215", "C) 1327", "D) 1492"], correctAnswer: "B" },
+            { question: "Which empire ruled India before British colonization?", options: ["A) Mughal", "B) Maurya", "C) Gupta", "D) Chola"], correctAnswer: "A" },
+            { question: "Who was the first man to walk on the moon?", options: ["A) Yuri Gagarin", "B) Neil Armstrong", "C) Buzz Aldrin", "D) Alan Shepard"], correctAnswer: "B" },
+            { question: "Which war was fought between 1914 and 1918?", options: ["A) World War I", "B) World War II", "C) Korean War", "D) Vietnam War"], correctAnswer: "A" }
+        ],
+    },
+    categories: {
+        "General Knowledge": { unlocked: true, background: "linear-gradient(135deg, #1a1a2e, #16213e)" },
+        "Science & Tech": { unlocked: false, background: "linear-gradient(135deg, #1a3c34, #0a2c24)" },
+        "Pop Culture": { unlocked: false, background: "linear-gradient(135deg, #4a2c5e, #3a1c4e)" },
+        "History": { unlocked: false, background: "linear-gradient(135deg, #5e3c2c, #4e2c1c)" },
+        "Sports": { unlocked: false, background: "linear-gradient(135deg, #2c5e3c, #1c4e2c)" }
+    },
+    aiPersonalities: [
+        { type: "Cautious", baseAccuracy: 0.7, minDelay: 3000, maxDelay: 6000, expertise: "History" },
+        { type: "Aggressive", baseAccuracy: 0.3, minDelay: 1000, maxDelay: 2000, expertise: "Pop Culture" },
+        { type: "Balanced", baseAccuracy: 0.5, minDelay: 2000, maxDelay: 4000, expertise: "General Knowledge" },
+        { type: "Cautious", baseAccuracy: 0.65, minDelay: 3500, maxDelay: 6500, expertise: "Science & Tech" },
+        { type: "Aggressive", baseAccuracy: 0.35, minDelay: 800, maxDelay: 1800, expertise: "Sports" },
+        { type: "Balanced", baseAccuracy: 0.55, minDelay: 1500, maxDelay: 3500, expertise: "History" },
+        { type: "Cautious", baseAccuracy: 0.6, minDelay: 3200, maxDelay: 6200, expertise: "Pop Culture" },
+        { type: "Aggressive", baseAccuracy: 0.4, minDelay: 900, maxDelay: 1900, expertise: "General Knowledge" },
+        { type: "Balanced", baseAccuracy: 0.5, minDelay: 1800, maxDelay: 3800, expertise: "Science & Tech" },
+        { type: "Cautious", baseAccuracy: 0.7, minDelay: 3000, maxDelay: 6000, expertise: "Sports" }
+    ],
+    selectedCategory: "General Knowledge",
+    dailyChallengeQuestions: [],
+    battleRoyaleQuestions: [],
+    isDailyChallenge: false,
+    isBattleRoyale: false,
+    questionIndex: 0,
+    timerId: null,
+    score: 0,
+    streak: 0,
+    coins: 0,
+    stars: 0,
+    gems: 0,
+    dailyStreak: 0,
+    lastDailyChallenge: null,
+    extraTime: false,
+    doublePoints: false,
+    freeze: false,
+    shieldActive: false, // Tracks if Shield is active
+    stealPointsActive: false, // Tracks if Steal Points is active
+    stealPointsTarget: null, // Tracks the target player for Steal Points
+    battlePlayers: [],
+    answers: {},
+    aiTimeouts: []
+};
+
+        function playChime() {
+            const chime = new Audio('sounds/chime.wav');
+            chime.play().catch(error => console.error('Chime playback error:', error));
+        }
+
+        function playBuzzer() {
+            const buzzer = new Audio('sounds/buzzer.wav');
+            buzzer.play().catch(error => console.error('Buzzer playback error:', error));
+        }
+
+        function playCheer() {
+            const cheer = new Audio('sounds/cheer.wav');
+            cheer.play().catch(error => console.error('Cheer playback error:', error));
+        }
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function loadGameState() {
+            try {
+                const savedState = localStorage.getItem("knowledgeVoyageState");
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    game.stars = state.stars || 0;
+                    game.gems = state.gems || 0;
+                    game.dailyStreak = state.dailyStreak || 0;
+                    game.lastDailyChallenge = state.lastDailyChallenge ? new Date(state.lastDailyChallenge) : null;
+                    for (let category in state.categories) {
+                        if (game.categories[category]) {
+                            game.categories[category].unlocked = state.categories[category].unlocked || false;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading game state:', error);
+                game = { ...game, stars: 0, gems: 0, dailyStreak: 0, lastDailyChallenge: null };
+            }
+        }
+
+        function saveGameState() {
+            const state = {
+                stars: game.stars,
+                gems: game.gems,
+                dailyStreak: game.dailyStreak,
+                lastDailyChallenge: game.lastDailyChallenge,
+                categories: game.categories
+            };
+            try {
+                localStorage.setItem("knowledgeVoyageState", JSON.stringify(state));
+            } catch (error) {
+                console.error('Error saving game state:', error);
+            }
+        }
+
+        function loadLeaderboard() {
+            const leaderboard = localStorage.getItem("knowledgeVoyageLeaderboard");
+            return leaderboard ? JSON.parse(leaderboard) : [];
+        }
+
+        function saveLeaderboard(leaderboard) {
+            localStorage.setItem("knowledgeVoyageLeaderboard", JSON.stringify(leaderboard));
+        }
+
+        function updateLeaderboard(score, streak) {
+            let leaderboard = loadLeaderboard();
+            const entry = { score, streak, date: new Date().toLocaleString() };
+            leaderboard.push(entry);
+            leaderboard.sort((a, b) => b.score - a.score || b.streak - a.streak);
+            leaderboard = leaderboard.slice(0, 10);
+            saveLeaderboard(leaderboard);
+            displayLeaderboard(leaderboard);
+        }
+
+        function displayLeaderboard(leaderboard) {
+            const leaderboardDiv = document.getElementById("leaderboard");
+            leaderboardDiv.style.display = "block";
+            leaderboardDiv.innerHTML = "<h3>Leaderboard - Top 10</h3>";
+            const table = document.createElement("table");
+            table.innerHTML = `
+                <tr>
+                    <th>Rank</th>
+                    <th>Score</th>
+                    <th>Streak</th>
+                    <th>Date</th>
+                </tr>
+            `;
+            leaderboard.forEach((entry, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${entry.score}</td>
+                    <td>${entry.streak}</td>
+                    <td>${entry.date}</td>
+                `;
+                table.appendChild(row);
+            });
+            leaderboardDiv.appendChild(table);
+        }
+
+        function getDailyChallengeQuestions() {
+            let allQuestions = [];
+            for (let category in game.categories) {
+                if (game.categories[category].unlocked) {
+                    allQuestions = allQuestions.concat(game.questions[category]);
+                }
+            }
+            // Use a true random shuffle instead of seeded shuffle
+            return shuffle([...allQuestions]).slice(0, 5);
+        }
+
+        function getBattleRoyaleQuestions() {
+            let allQuestions = [];
+            for (let category in game.categories) {
+                if (game.categories[category].unlocked) {
+                    allQuestions = allQuestions.concat(game.questions[category]);
+                }
+            }
+            return shuffle([...allQuestions]).slice(0, 10);
+        }
+
+        function canPlayDailyChallenge() {
+            const today = new Date().toDateString();
+            return !game.lastDailyChallenge || new Date(game.lastDailyChallenge).toDateString() !== today;
+        }
+
+        function updateDailyTimer() {
+            const timerElement = document.getElementById("daily-timer");
+            if (timerElement) { // Only run if the element exists
+                const now = new Date();
+                const tomorrow = new Date(now);
+                tomorrow.setHours(0, 0, 0, 0);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const timeLeft = tomorrow - now;
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                timerElement.textContent = `Next Daily Challenge in: ${hours}h ${minutes}m ${seconds}s`;
+                setTimeout(updateDailyTimer, 1000);
+            }
+        }
+
+        function showCategorySelection() {
+            const categoryDiv = document.getElementById("category-selection");
+            if (!categoryDiv) return;
+            categoryDiv.style.display = "block";
+            document.getElementById("battle-hud").style.display = "none";
+            document.getElementById("question").style.display = "none";
+            document.getElementById("score-display").style.display = "block";
+            document.getElementById("lobby").style.display = "none";
+            document.getElementById("timer-bar-container").style.display = "none";
+            document.getElementById("options").style.display = "none";
+            document.getElementById("feedback").style.display = "none";
+            document.getElementById("power-ups").style.display = "none";
+            document.getElementById("daily-timer").style.display = "block";
+            document.getElementById("league-dashboard").style.display = "none";
+            document.getElementById("leaderboard").style.display = "none";
+
+            // Header with player stats
+            categoryDiv.innerHTML = `
+                <h3 style='font-family: Bangers, cursive;'>Select a Mode</h3>
+                <p>Stars: <span class='star-icon'></span>${game.stars} | Gems: <span class='gem-icon'></span>${game.gems} | Daily Streak: ${game.dailyStreak}</p>
+            `;
+
+            // Categories table
+            categoryDiv.innerHTML += `<div class="section-header">Categories</div>`;
+            const table = document.createElement("table");
+            table.innerHTML = `
+                <tr>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Requirements</th>
+                    <th>Action</th>
+                </tr>
+            `;
+
+            for (let category in game.categories) {
+                console.log(`Processing category: ${category}, Unlocked: ${game.categories[category].unlocked}`);
+                const row = document.createElement("tr");
+                const isUnlocked = game.categories[category].unlocked;
+                const statusClass = isUnlocked ? "status-unlocked" : "status-locked";
+                const statusText = isUnlocked ? "Unlocked" : "Locked";
+                const requirementsText = isUnlocked ? "N/A" : `20 <span class='star-icon'></span> or 10 <span class='gem-icon'></span>`;
+                const button = document.createElement("button");
+                button.className = isUnlocked ? "play-btn" : "unlock-btn";
+                button.textContent = isUnlocked ? "Play" : "Unlock";
+                // Temporary onclick for debugging
+                button.setAttribute('onclick', `console.log('Temporary onclick: ${isUnlocked ? 'Play' : 'Unlock'} button clicked for ${category}'); ${isUnlocked ? `startGame('${category}')` : `unlockCategory('${category}')`}`);
+                // Primary event listener
+                if (isUnlocked) {
+                    button.addEventListener('click', () => {
+                        console.log(`Play button clicked for category: ${category}`);
+                        startGame(category);
+                    });
+                    console.log(`Added click event listener to Play button for ${category}`);
+                } else {
+                    button.addEventListener('click', () => {
+                        console.log(`Unlock button clicked for category: ${category}`);
+                        unlockCategory(category);
+                    });
+                    console.log(`Added click event listener to Unlock button for ${category}`);
+                }
+
+                row.innerHTML = `
+                    <td>
+                        <div class="tooltip">
+                            ${category}
+                            <span class="tooltiptext">Play 10 questions from the ${category} category.</span>
+                        </div>
+                    </td>
+                    <td class="${statusClass}">${statusText}</td>
+                    <td>${requirementsText}</td>
+                    <td></td>
+                `;
+                row.cells[3].appendChild(button);
+                console.log(`Button added for ${category}, Class: ${button.className}, Text: ${button.textContent}`);
+                table.appendChild(row);
+                console.log(`Row appended to table for ${category}`);
+            }
+            console.log(`Appending table to categoryDiv, Rows: ${table.rows.length}`);
+            categoryDiv.appendChild(table);
+
+            // Game Modes section
+            categoryDiv.innerHTML += `<div class="section-header">Game Modes</div>`;
+            const modesTable = document.createElement("table");
+            modesTable.innerHTML = `
+                <tr>
+                    <th>Mode</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            `;
+
+            const dailyRow = document.createElement("tr");
+            const canPlayDaily = canPlayDailyChallenge();
+            const dailyStatus = canPlayDaily ? "Available" : "Completed Today";
+            const dailyStatusClass = canPlayDaily ? "status-unlocked" : "status-locked";
+            const dailyButton = document.createElement("button");
+            dailyButton.className = canPlayDaily ? "play-btn" : "unlock-btn";
+            dailyButton.textContent = canPlayDaily ? "Play" : "Wait";
+            if (canPlayDaily) {
+                dailyButton.addEventListener('click', () => {
+                    console.log("Daily Challenge Play button clicked");
+                    startDailyChallenge();
+                });
+                console.log("Added click event listener to Daily Challenge Play button");
+            } else {
+                dailyButton.disabled = true;
+            }
+            dailyRow.innerHTML = `
+                <td>
+                    <div class="tooltip">
+                        Daily Challenge
+                        <span class="tooltiptext">Answer 5 questions from all unlocked categories. Resets daily!</span>
+                    </div>
+                </td>
+                <td class="${dailyStatusClass}">${dailyStatus}</td>
+                <td></td>
+            `;
+            dailyRow.cells[2].appendChild(dailyButton);
+            modesTable.appendChild(dailyRow);
+
+            const battleRow = document.createElement("tr");
+            const battleButton = document.createElement("button");
+            battleButton.className = "play-btn";
+            battleButton.textContent = "Play";
+            battleButton.addEventListener('click', () => {
+                console.log("Battle Royale Play button clicked");
+                startBattleRoyale();
+            });
+            console.log("Added click event listener to Battle Royale Play button");
+            battleRow.innerHTML = `
+                <td>
+                    <div class="tooltip">
+                        Battle Royale
+                        <span class="tooltiptext">Compete against 9 opponents in a 10-question showdown!</span>
+                    </div>
+                </td>
+                <td class="status-unlocked">Available</td>
+                <td></td>
+            `;
+            battleRow.cells[2].appendChild(battleButton);
+            modesTable.appendChild(battleRow);
+
+            categoryDiv.appendChild(modesTable);
+
+            updateScoreDisplay();
+            updateDailyTimer();
+        }
+        function unlockCategory(category) {
+            const feedback = document.getElementById("feedback");
+            if (game.stars >= 20 && !game.categories[category].unlocked) {
+                game.stars -= 20;
+                game.categories[category].unlocked = true;
+                saveGameState();
+                showCategorySelection();
+                feedback.textContent = `${category} Unlocked with Stars!`;
+                feedback.style.color = "#28a745";
+                feedback.classList.add("show");
+                setTimeout(() => feedback.classList.remove("show"), 2000);
+            } else if (game.gems >= 10 && !game.categories[category].unlocked) {
+                game.gems -= 10;
+                game.categories[category].unlocked = true;
+                saveGameState();
+                showCategorySelection();
+                feedback.textContent = `${category} Unlocked with Gems!`;
+                feedback.style.color = "#28a745";
+                feedback.classList.add("show");
+                setTimeout(() => feedback.classList.remove("show"), 2000);
+            } else {
+                feedback.textContent = "Not Enough Stars or Gems!";
+                feedback.style.color = "#dc3545";
+                feedback.classList.add("show");
+                setTimeout(() => feedback.classList.remove("show"), 2000);
+            }
+        }
+
+        function startGame(category) {
+            console.log(`startGame called with category: ${category}`); // Debug log
+            if (!game.questions[category]) {
+                console.error(`No questions found for category: ${category}`);
+                return;
+            }
+            game.isDailyChallenge = false;
+            game.isBattleRoyale = false;
+            game.selectedCategory = category;
+            document.body.style.background = game.categories[category].background;
+            console.log(`Shuffling questions for ${category}, total questions: ${game.questions[category].length}`); // Debug log
+            game.currentQuestions = shuffle([...game.questions[category]]).slice(0, 10);
+            game.questionIndex = 0;
+            game.score = 0;
+            game.streak = 0;
+            game.coins = 0;
+            game.extraTime = false;
+            game.doublePoints = false;
+            game.freeze = false;
+            game.shieldActive = false; // Reset Shield state
+            game.stealPointsActive = false; // Reset Steal Points state
+            game.stealPointsTarget = null; // Reset Steal Points target
+            game.battlePlayers = [
+                { name: "You", lives: 3, avatar: "😊", score: 0, streak: 0, coins: 0 },
+                { name: "AI-1", lives: 3, avatar: "🤓", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[0] },
+                { name: "AI-2", lives: 3, avatar: "😎", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[1] },
+                { name: "AI-3", lives: 3, avatar: "🤠", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[2] }
+            ];
+            game.answers = {};
+            game.aiTimeouts = [];
+            // Re-enable Shield button for new game with error handling
+            const shieldButton = document.querySelector('.power-up-btn[data-power="shield"]');
+            if (shieldButton) shieldButton.disabled = false;
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById("category-selection").style.display = "none";
+            document.getElementById("battle-hud").style.display = "none";
+            document.getElementById("question").style.display = "block";
+            document.getElementById("timer-bar-container").style.display = "block";
+            document.getElementById("options").style.display = "grid";
+            document.getElementById("feedback").style.display = "block";
+            document.getElementById("score-display").style.display = "block";
+            document.getElementById("lobby").style.display = "block";
+            document.getElementById("power-ups").style.display = "flex";
+            document.getElementById("daily-timer").style.display = "none";
+            document.getElementById("league-dashboard").style.display = "none";
+            document.getElementById("leaderboard").style.display = "none";
+            updateScoreDisplay();
+            updateLobby();
+            console.log("Calling nextQuestion from startGame"); // Debug log
+            nextQuestion();
+        }
+
+        function startDailyChallenge() {
+            game.isDailyChallenge = true;
+            game.isBattleRoyale = false;
+            game.dailyChallengeQuestions = getDailyChallengeQuestions();
+            document.body.style.background = "linear-gradient(135deg, #3c2f5e, #2c1f4e)";
+            game.questionIndex = 0;
+            game.score = 0;
+            game.streak = 0;
+            game.coins = 0;
+            game.extraTime = false;
+            game.doublePoints = false;
+            game.freeze = false;
+            game.shieldActive = false; // Reset Shield state
+            game.stealPointsActive = false; // Reset Steal Points state
+            game.stealPointsTarget = null; // Reset Steal Points target
+            game.battlePlayers = [
+                { name: "You", lives: 3, avatar: "😊", score: 0, streak: 0, coins: 0 },
+                { name: "AI-1", lives: 3, avatar: "🤓", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[0] },
+                { name: "AI-2", lives: 3, avatar: "😎", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[1] },
+                { name: "AI-3", lives: 3, avatar: "🤠", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[2] }
+            ];
+            game.answers = {};
+            game.aiTimeouts = [];
+            // Re-enable Shield button for new game with error handling
+            const shieldButton = document.querySelector('.power-up-btn[data-power="shield"]');
+            if (shieldButton) shieldButton.disabled = false;
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById("category-selection").style.display = "none";
+            document.getElementById("battle-hud").style.display = "none";
+            document.getElementById("question").style.display = "block";
+            document.getElementById("timer-bar-container").style.display = "block";
+            document.getElementById("options").style.display = "grid";
+            document.getElementById("feedback").style.display = "block";
+            document.getElementById("score-display").style.display = "block";
+            document.getElementById("lobby").style.display = "block";
+            document.getElementById("power-ups").style.display = "flex";
+            document.getElementById("daily-timer").style.display = "none";
+            document.getElementById("league-dashboard").style.display = "none";
+            document.getElementById("leaderboard").style.display = "none";
+            updateScoreDisplay();
+            updateLobby();
+            nextQuestion();
+        }
+
+        function startBattleRoyale() {
+            console.log("Starting Battle Royale");
+            game.isDailyChallenge = false;
+            game.isBattleRoyale = true;
+            game.battleRoyaleQuestions = getBattleRoyaleQuestions();
+            document.body.style.background = "linear-gradient(135deg, #5e2c2c, #4e1c1c)";
+            game.questionIndex = 0;
+            game.score = 0;
+            game.streak = 0;
+            game.coins = 0;
+            game.extraTime = false;
+            game.doublePoints = false;
+            game.freeze = false;
+            game.shieldActive = false; // Reset Shield state
+            game.stealPointsActive = false; // Reset Steal Points state
+            game.stealPointsTarget = null; // Reset Steal Points target
+            game.battlePlayers = [
+                { name: "You", lives: 3, avatar: "😊", score: 0, streak: 0, coins: 0 },
+                { name: "Player 1", lives: 3, avatar: "🤓", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[0] },
+                { name: "Player 2", lives: 3, avatar: "😎", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[1] },
+                { name: "Player 3", lives: 3, avatar: "🤠", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[2] },
+                { name: "Player 4", lives: 3, avatar: "😺", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[3] },
+                { name: "Player 5", lives: 3, avatar: "🐶", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[4] },
+                { name: "Player 6", lives: 3, avatar: "🦁", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[5] },
+                { name: "Player 7", lives: 3, avatar: "🐻", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[6] },
+                { name: "Player 8", lives: 3, avatar: "🐼", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[7] },
+                { name: "Player 9", lives: 3, avatar: "🦊", score: 0, streak: 0, coins: 0, personality: game.aiPersonalities[8] }
+            ];
+            game.answers = {};
+            game.aiTimeouts = [];
+            // Re-enable Shield button for new game with error handling
+            const shieldButton = document.querySelector('.power-up-btn[data-power="shield"]');
+            if (shieldButton) shieldButton.disabled = false;
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById("category-selection").style.display = "none";
+            document.getElementById("battle-hud").style.display = "flex";
+            document.getElementById("question").style.display = "block";
+            document.getElementById("timer-bar-container").style.display = "block";
+            document.getElementById("options").style.display = "grid";
+            document.getElementById("feedback").style.display = "block";
+            document.getElementById("score-display").style.display = "block";
+            document.getElementById("lobby").style.display = "none";
+            document.getElementById("power-ups").style.display = "flex";
+            document.getElementById("daily-timer").style.display = "none";
+            document.getElementById("league-dashboard").style.display = "none";
+            document.getElementById("leaderboard").style.display = "none";
+            updateScoreDisplay();
+            updateBattleHud();
+            console.log("Initial state - Question Index:", game.questionIndex, "Players:", game.battlePlayers.length);
+            nextQuestion();
+        }
+
+        function updateBattleHud() {
+            const hud = document.getElementById("battle-hud");
+            hud.innerHTML = "";
+            const avatarImages = [
+                "url('assets/avatars/knight.png')",    // Player "You"
+                "url('assets/avatars/mage.png')",      // Player 1
+                "url('assets/avatars/scout.png')",     // Player 2
+                "url('assets/avatars/warrior.png')",   // Player 3
+                "url('assets/avatars/rogue.png')",     // Player 4
+                "url('assets/avatars/archer.png')",    // Player 5
+                "url('assets/avatars/paladin.png')",   // Player 6
+                "url('assets/avatars/sorcerer.png')",  // Player 7
+                "url('assets/avatars/druid.png')",     // Player 8
+                "url('assets/avatars/hunter.png')"     // Player 9
+            ];
+            game.battlePlayers.forEach((player, index) => {
+                const card = document.createElement("div");
+                card.className = "player-card";
+                if (player.lives <= 0) card.classList.add("eliminated");
+                const avatar = document.createElement("div");
+                avatar.className = "avatar";
+                avatar.style.backgroundImage = avatarImages[index] || "url('assets/avatars/default.png')";
+                const name = document.createElement("div");
+                name.className = "name";
+                name.textContent = player.name;
+                const lives = document.createElement("div");
+                lives.className = "lives";
+                lives.textContent = "❤️".repeat(player.lives);
+                const personality = document.createElement("div");
+                personality.className = "personality";
+                personality.style.fontSize = "0.8em";
+                personality.style.color = "#ccc";
+                if (player.name !== "You" && player.personality) {
+                    personality.textContent = `${player.personality.type} (${player.personality.expertise} Expert)`;
+                }
+                card.appendChild(avatar);
+                card.appendChild(name);
+                card.appendChild(lives);
+                card.appendChild(personality);
+                hud.appendChild(card);
+            });
+        }
+
+        function nextQuestion() {
+            console.log("nextQuestion called"); // Debug log
+            const questionSet = game.isDailyChallenge ? game.dailyChallengeQuestions : 
+                                (game.isBattleRoyale ? game.battleRoyaleQuestions : 
+                                game.currentQuestions);
+            console.log(`Question set length: ${questionSet.length}`); // Debug log
+            const maxQuestions = game.isDailyChallenge ? 5 : 10;
+            const remainingPlayers = game.battlePlayers.filter(p => p.lives > 0);
+            console.log(`nextQuestion - Index: ${game.questionIndex}, Max: ${maxQuestions}, Battle Royale: ${game.isBattleRoyale}, Remaining Players: ${remainingPlayers.length}`);
+
+            if (game.questionIndex < maxQuestions && (!game.isBattleRoyale || remainingPlayers.length > 1)) {
+                const q = questionSet[game.questionIndex];
+                console.log(`Displaying question: ${q.question}`); // Debug log
+                const questionEl = document.getElementById("question");
+                
+                // Handle different question types
+                if (q.type === "image-based" && q.image) {
+                    // For image-based questions, create an img element and add it above the question text
+                    questionEl.innerHTML = `<img src="${q.image}" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);" /><br>Question ${game.questionIndex + 1}: ${q.question}`;
+                } else {
+                    // For other question types, just show the text
+                    questionEl.textContent = `Question ${game.questionIndex + 1}: ${q.question}`;
+                }
+
+                questionEl.style.animation = 'none';
+                void questionEl.offsetWidth;
+                questionEl.style.animation = 'questionPop 1s ease-out forwards';
+
+                const options = document.getElementById("options");
+                options.innerHTML = "";
+                
+                // Display options based on question type
+                if (q.type === "true-false") {
+                    // For True/False questions, show only two buttons
+                    q.options.forEach(option => {
+                        const btn = document.createElement("button");
+                        btn.className = "option-btn";
+                        btn.textContent = option;
+                        btn.setAttribute("data-letter", option.charAt(0));
+                        btn.onclick = () => {
+                            const timeTaken = (Date.now() - game.startTime) / 1000;
+                            checkAnswer("You", option, timeTaken);
+                            btn.disabled = true;
+                        };
+                        options.appendChild(btn);
+                    });
+                } else {
+                    // For multiple-choice and image-based questions, show all options
+                    q.options.forEach(option => {
+                        const btn = document.createElement("button");
+                        btn.className = "option-btn";
+                        btn.textContent = option;
+                        const letter = option.charAt(0);
+                        btn.setAttribute("data-letter", letter);
+                        btn.onclick = () => {
+                            const timeTaken = (Date.now() - game.startTime) / 1000;
+                            checkAnswer("You", letter, timeTaken);
+                            btn.disabled = true;
+                        };
+                        options.appendChild(btn);
+                    });
+                }
+
+                game.startTime = Date.now();
+                game.answers = {};
+                startTimer(q.type === "true-false" ? 4 : undefined); // Use 4-second timer for True/False, default for others
+                simulateAIAnswers(q);
+                const feedback = document.getElementById("feedback");
+                feedback.textContent = "";
+                feedback.classList.remove("show", "sparkle");
+                document.getElementById("game-container").classList.remove("shake");
+            } else {
+                console.log("Condition failed - Ending game from nextQuestion");
+                endGame();
+            }
+        }
+
+        function startTimer(customDuration) {
+            const timerBar = document.getElementById("timer-bar");
+            if (!timerBar) {
+                console.error('Timer bar not found');
+                return;
+            }
+            const duration = game.freeze ? Infinity : (customDuration !== undefined ? customDuration : (game.extraTime ? 9 : 6));
+
+            timerBar.style.transition = 'none';
+            timerBar.style.width = "100%";
+            void timerBar.offsetWidth;
+
+            if (!game.freeze) {
+                timerBar.style.transition = `width ${duration}s linear`;
+                timerBar.style.width = "0%";
+            }
+
+            if (game.timerId) clearTimeout(game.timerId);
+            if (!game.freeze) {
+                game.timerId = setTimeout(() => {
+                    if (!game.answers["You"]) {
+                        game.battlePlayers.filter(p => p.lives > 0 && !game.answers[p.name] && p.name !== "You").forEach(p => checkAnswer(p.name, null, duration));
+                        playBuzzer();
+                    }
+                }, duration * 1000);
+            }
+        }
+
+        function simulateAIAnswers(q) {
+            const aiPlayers = game.battlePlayers.filter(p => p.lives > 0 && p.name !== "You");
+            const player = game.battlePlayers.find(p => p.name === "You");
+            const playerScore = player.score || 0;
+            const playerStreak = player.streak || 0;
+
+            // Determine the current category (for expertise bonus)
+            let currentCategory = game.isDailyChallenge || game.isBattleRoyale
+                ? null // For mixed modes, we'll average difficulty
+                : game.selectedCategory;
+
+            aiPlayers.forEach((aiPlayer, index) => {
+                if (!aiPlayer.personality) {
+                    aiPlayer.personality = game.aiPersonalities[index % game.aiPersonalities.length];
+                }
+
+                const personality = aiPlayer.personality;
+                let baseAccuracy = personality.baseAccuracy;
+                let minDelay = personality.minDelay;
+                let maxDelay = personality.maxDelay;
+
+                // Adjust accuracy and speed based on player performance
+                let difficultyScaler = 1 + (playerScore / 100) * 0.1 + (playerStreak / 5) * 0.05;
+                difficultyScaler = Math.min(difficultyScaler, 2); // Cap at 2x difficulty
+
+                // Apply category expertise bonus
+                let expertiseBonus = 0;
+                if (currentCategory && personality.expertise === currentCategory) {
+                    expertiseBonus = 0.15; // 15% accuracy boost in their expertise
+                    minDelay *= 0.8; // Answer 20% faster
+                    maxDelay *= 0.8;
+                }
+
+                // Final accuracy with expertise and variability
+                let correctnessChance = baseAccuracy + expertiseBonus;
+                correctnessChance *= difficultyScaler;
+                correctnessChance = Math.min(correctnessChance, 0.95); // Cap at 95% accuracy
+
+                // Add random variability (±10% accuracy fluctuation)
+                const variability = (Math.random() * 0.2) - 0.1; // Random -10% to +10%
+                correctnessChance = Math.max(0.1, Math.min(0.95, correctnessChance + variability));
+
+                // Adjust speed based on difficulty
+                minDelay = Math.max(500, minDelay / difficultyScaler);
+                maxDelay = Math.max(1000, maxDelay / difficultyScaler);
+
+                const delay = Math.random() * (maxDelay - minDelay) + minDelay;
+
+                const timeout = setTimeout(() => {
+                    if (!game.answers[aiPlayer.name]) {
+                        const options = ["A", "B", "C", "D"];
+                        const isCorrect = Math.random() < correctnessChance;
+                        const answer = isCorrect ? q.correctAnswer : options[Math.floor(Math.random() * options.length)];
+                        const timeTaken = delay / 1000;
+                        checkAnswer(aiPlayer.name, answer, timeTaken, true);
+                    }
+                }, delay);
+                game.aiTimeouts.push(timeout);
+            });
+        }
+
+        function checkAnswer(playerName, answer, timeTaken, silent = false) {
+            if (game.answers[playerName]) return;
+
+            const q = (game.isDailyChallenge ? game.dailyChallengeQuestions : 
+                    (game.isBattleRoyale ? game.battleRoyaleQuestions : 
+                    game.currentQuestions))[game.questionIndex];
+            const correct = answer === q.correctAnswer;
+            const player = game.battlePlayers.find(p => p.name === playerName);
+            game.answers[playerName] = { answer, timeTaken, correct };
+
+            if (correct) {
+                const basePoints = Math.max(10 * ++player.streak - Math.floor(timeTaken), 0);
+                let multiplier = 1;
+                let streakMessage = "";
+
+                // Apply streak multipliers
+                if (player.streak >= 7) {
+                    multiplier = 3;
+                    streakMessage = " x3 Streak Bonus!";
+                } else if (player.streak >= 5) {
+                    multiplier = 2;
+                    streakMessage = " x2 Streak Bonus!";
+                } else if (player.streak >= 3) {
+                    multiplier = 1.5;
+                    streakMessage = " x1.5 Streak Bonus!";
+                }
+
+                let finalPoints = basePoints * multiplier;
+
+                if (playerName === "You") {
+                    if (game.doublePoints) {
+                        finalPoints *= 2;
+                        game.doublePoints = false;
+                    }
+                    player.score += finalPoints;
+                    player.coins += player.streak;
+                    game.stars += 1;
+
+                    // Apply streak milestone bonuses
+                    if (player.streak === 5) {
+                        player.coins += 5;
+                        game.stars += 5;
+                        streakMessage += " +5 Coins!";
+                        playCheer();
+                        confetti({ particleCount: 100, spread: 70 });
+                    } else if (player.streak === 7) {
+                        player.coins += 10; // Equivalent to a free power-up
+                        game.stars += 5;
+                        streakMessage += " +10 Coins!";
+                        playCheer();
+                        confetti({ particleCount: 150, spread: 100 });
+                    }
+
+                    // Handle Steal Points success
+                    if (game.stealPointsActive && game.stealPointsTarget) {
+                        const stealAmount = Math.min(game.stealPointsTarget.score, 20);
+                        if (stealAmount > 0) {
+                            game.stealPointsTarget.score -= stealAmount;
+                            player.score += stealAmount;
+                            document.getElementById("feedback").textContent = `Correct! Stole ${stealAmount} points from ${game.stealPointsTarget.name}!` + streakMessage;
+                        } else {
+                            document.getElementById("feedback").textContent = "Correct! Nothing to steal." + streakMessage;
+                        }
+                        game.stealPointsActive = false;
+                        game.stealPointsTarget = null;
+                    } else {
+                        document.getElementById("feedback").textContent = "Correct!" + streakMessage;
+                    }
+
+                    if (game.isDailyChallenge) game.gems += 1;
+
+                    document.getElementById("feedback").style.color = "#28a745";
+                    document.getElementById("feedback").classList.add("show", "sparkle");
+                    console.log("Correct answer by You - Playing chime");
+                    playChime();
+                } else if (!silent) {
+                    player.score += finalPoints;
+                    player.coins += player.streak;
+                }
+            } else {
+                player.streak = 0;
+                let lifeLost = true;
+                if (playerName === "You" && game.shieldActive) {
+                    game.shieldActive = false;
+                    lifeLost = false;
+                    document.getElementById("feedback").textContent = "Wrong! Shield protected your life.";
+                    const shieldButton = document.querySelector('.power-up-btn[data-power="shield"]');
+                    if (shieldButton) shieldButton.disabled = true;
+                }
+
+                if (lifeLost) {
+                    player.lives--;
+                    if (playerName === "You") {
+                        document.getElementById("feedback").textContent = "Wrong!";
+                        document.getElementById("feedback").style.color = "#dc3545";
+                        document.getElementById("game-container").classList.add("shake");
+                        console.log("Wrong answer by You - Playing buzzer");
+                        playBuzzer();
+                    }
+                }
+
+                // Handle Steal Points failure
+                if (playerName === "You" && game.stealPointsActive && game.stealPointsTarget) {
+                    const penalty = 40;
+                    player.score = Math.max(0, player.score - penalty);
+                    document.getElementById("feedback").textContent = lifeLost
+                        ? `Wrong! Failed steal, lost ${penalty} points!`
+                        : `Wrong! Failed steal, lost ${penalty} points! (Shield protected life)`;
+                    game.stealPointsActive = false;
+                    game.stealPointsTarget = null;
+                }
+
+                document.getElementById("feedback").classList.add("show");
+            }
+
+            updateScoreDisplay();
+            if (game.isBattleRoyale) updateBattleHud();
+            else updateLobby();
+
+            // If player answers, process and decide next step
+            if (playerName === "You") {
+                if (game.timerId) clearTimeout(game.timerId);
+                game.aiTimeouts.forEach(clearTimeout);
+                game.aiTimeouts = [];
+
+                // Stop timer bar animation instantly
+                const timerBar = document.getElementById("timer-bar");
+                timerBar.style.transition = 'none';
+                timerBar.style.width = "0%";
+
+                // Battle Royale elimination logic
+                if (game.isBattleRoyale) {
+                    const answersThisRound = Object.values(game.answers);
+                    const incorrectPlayers = game.battlePlayers.filter(p => game.answers[p.name] && !game.answers[p.name].correct && p.lives > 0 && p.name !== "You");
+                    let toEliminate = [];
+                    if (incorrectPlayers.length > 0) {
+                        toEliminate = [incorrectPlayers[0]]; // Eliminate one incorrect AI player
+                    } else if (answersThisRound.length > 1) { // Only eliminate if AI has answered
+                        const slowestCorrect = answersThisRound.filter(a => a.correct && game.battlePlayers.find(p => p.name !== "You" && game.answers[p.name] === a)).sort((a, b) => b.timeTaken - a.timeTaken)[0];
+                        toEliminate = slowestCorrect ? [game.battlePlayers.find(p => p.name !== "You" && game.answers[p.name] === slowestCorrect)] : [];
+                    }
+                    toEliminate.forEach(p => {
+                        if (p && p.lives > 0) p.lives = 0;
+                    });
+                }
+
+                const feedback = document.getElementById("feedback");
+                feedback.classList.remove("show", "sparkle");
+                document.getElementById("game-container").classList.remove("shake");
+                if (game.isBattleRoyale) updateBattleHud();
+                else updateLobby();
+
+                const remainingPlayers = game.battlePlayers.filter(p => p.lives > 0);
+                const you = game.battlePlayers.find(p => p.name === "You");
+
+                console.log(`After answer - Question Index: ${game.questionIndex}, Remaining Players: ${remainingPlayers.length}, Your Lives: ${you.lives}`);
+
+                // Battle Royale logic
+                if (game.isBattleRoyale) {
+                    if (you.lives <= 0) {
+                        console.log("You are eliminated - Ending Battle Royale");
+                        endGame();
+                    } else if (remainingPlayers.length <= 1) {
+                        console.log("Only one player remains - Ending Battle Royale");
+                        endGame();
+                    } else if (game.questionIndex >= 9) { // 0-9 is 10 questions
+                        console.log("10 questions completed - Ending Battle Royale");
+                        endGame();
+                    } else {
+                        console.log("Proceeding to next question in Battle Royale");
+                        game.questionIndex++;
+                        nextQuestion();
+                    }
+                } else { // Non-Battle Royale modes
+                    if (game.questionIndex >= (game.isDailyChallenge ? 4 : 9)) { // 0-4 for 5, 0-9 for 10
+                        console.log("Max questions reached for non-Battle Royale - Ending game");
+                        endGame();
+                    } else {
+                        console.log("Proceeding to next question in non-Battle Royale");
+                        game.questionIndex++;
+                        nextQuestion();
+                    }
+                }
+            }
+        }
+
+        function updateScoreDisplay() {
+            const you = game.battlePlayers.find(p => p.name === "You") || { score: 0, streak: 0, coins: 0, lives: 3 };
+            game.score = you.score;
+            game.streak = you.streak;
+            game.coins = you.coins;
+            let multiplierText = "";
+            if (game.streak >= 7) {
+                multiplierText = " | Multiplier: x3";
+            } else if (game.streak >= 5) {
+                multiplierText = " | Multiplier: x2";
+            } else if (game.streak >= 3) {
+                multiplierText = " | Multiplier: x1.5";
+            }
+            document.getElementById("score-display").innerHTML = `Score: ${game.score} | Streak: ${game.streak}${multiplierText} | Coins: <span class="coin-icon"></span>${game.coins} | Stars: <span class="star-icon"></span>${game.stars} | Gems: <span class="gem-icon"></span>${game.gems}`;
+            if (game.isBattleRoyale) {
+                document.getElementById("score-display").innerHTML += ` | Lives: ${"❤️".repeat(you.lives)}`;
+            }
+        }
+
+        function updateLobby() {
+            const lobby = document.getElementById("lobby");
+            lobby.innerHTML = "<h3 style='font-family: Bangers, cursive;'>Players</h3>";
+            game.battlePlayers.forEach(player => {
+                lobby.innerHTML += `<p>${player.name}: Score: ${player.score}, Streak: ${player.streak}</p>`;
+            });
+        }
+
+        function endGame() {
+            const you = game.battlePlayers.find(p => p.name === "You");
+            if (game.score > 0) {
+                updateLeaderboard(game.score, game.streak);
+            }
+            if (game.isDailyChallenge) {
+                const today = new Date();
+                game.lastDailyChallenge = today;
+                game.dailyStreak = game.lastDailyChallenge && new Date(game.lastDailyChallenge).toDateString() === new Date(today.getTime() - 24 * 60 * 60 * 1000).toDateString() ? game.dailyStreak + 1 : 1;
+                const streakBonus = Math.min(game.dailyStreak - 1, 5);
+                game.gems += streakBonus;
+                document.getElementById("feedback").textContent = `Daily Challenge Complete! +${game.gems} Gems (Streak: ${game.dailyStreak})`;
+                document.getElementById("feedback").style.color = "#ffc107";
+                document.getElementById("feedback").classList.add("show");
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                setTimeout(() => document.getElementById("feedback").classList.remove("show"), 2000);
+            } else if (game.isBattleRoyale) {
+                const activePlayers = game.battlePlayers.filter(p => p.lives > 0);
+                const winner = activePlayers.length === 1 ? activePlayers[0] : null;
+                if (winner && winner.name === "You") {
+                    game.stars += 50;
+                    game.gems += 20;
+                    document.getElementById("feedback").textContent = "Victory Royale! +50 Stars, +20 Gems";
+                    document.getElementById("feedback").style.color = "#ffd700";
+                    document.getElementById("feedback").classList.add("show", "sparkle");
+                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+                    setTimeout(() => document.getElementById("feedback").classList.remove("show", "sparkle"), 2000);
+                } else {
+                    const rank = game.battlePlayers.filter(p => p.lives > you.lives).length + 1;
+                    if (rank <= 3 && you.lives > 0) {
+                        game.stars += 5;
+                        document.getElementById("feedback").textContent = `Top 3 Finish! Rank ${rank}, +5 Stars`;
+                        document.getElementById("feedback").style.color = "#c0c0c0";
+                        document.getElementById("feedback").classList.add("show");
+                        confetti({ particleCount: 75, spread: 50, origin: { y: 0.6 } });
+                        setTimeout(() => document.getElementById("feedback").classList.remove("show"), 2000);
+                    } else {
+                        document.getElementById("feedback").textContent = `Eliminated! Rank ${rank}`;
+                        document.getElementById("feedback").style.color = "#dc3545";
+                        document.getElementById("feedback").classList.add("show");
+                        setTimeout(() => document.getElementById("feedback").classList.remove("show"), 2000);
+                    }
+                }
+            }
+            saveGameState();
+            document.getElementById("question").textContent = `Game Over! Your Final Score: ${game.score}`;
+            const options = document.getElementById("options");
+            options.innerHTML = "";
+            document.getElementById("battle-hud").style.display = "none";
+            document.getElementById("timer-bar-container").style.display = "none";
+            document.getElementById("score-display").style.display = "none";
+            document.getElementById("lobby").style.display = "none";
+            document.getElementById("power-ups").style.display = "none";
+            document.getElementById("daily-timer").style.display = "block";
+            document.getElementById("league-dashboard").style.display = "none";
+            document.getElementById("feedback").textContent = "";
+            document.getElementById("game-container").classList.remove("shake");
+
+            const playAgainBtn = document.createElement("button");
+            playAgainBtn.id = "play-again-btn";
+            playAgainBtn.textContent = "Play Again"; // Changed from "Back to Categories"
+            playAgainBtn.onclick = showCategorySelection; // Still returns to category selection
+            options.appendChild(playAgainBtn);
+        }
+
+        function startBackgroundAnimation() {
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            console.log("Browser detected:", isSafari ? "Safari" : "Not Safari");
+
+            // For both Safari and Chrome: Use CSS-based particles (no canvas needed)
+            const particleContainer = document.createElement('div');
+            particleContainer.className = 'particles';
+            particleContainer.style.zIndex = '-1'; // Keeps particles behind the game box
+            for (let i = 0; i < 50; i++) { // Make 50 little dots (particles) that move
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + 'vw'; // Random spot on the screen (left to right)
+                particle.style.top = Math.random() * 100 + 'vh'; // Random spot on the screen (top to bottom)
+                particle.style.animationDelay = Math.random() * 10 + 's'; // Start moving at different times
+                particleContainer.appendChild(particle);
+            }
+            document.body.appendChild(particleContainer);
+
+            // Optional: Make the dots brighter or dimmer based on the timer (you can skip this if it’s confusing)
+            const timerBar = document.getElementById("timer-bar");
+            if (timerBar) {
+                const updateParticles = () => {
+                    const progress = parseFloat(timerBar.style.width) / 100 || 1;
+                    const particles = document.querySelectorAll('.particle');
+                    particles.forEach(p => {
+                        p.style.opacity = 0.2 + progress * 0.1; // Dots get brighter or dimmer with time
+                    });
+                };
+                timerBar.addEventListener('transitionend', updateParticles);
+                updateParticles(); // Start with the dots at the right brightness
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+            try {
+                loadGameState();
+                document.getElementById('title-screen').style.display = 'flex'; // Show title screen
+                document.getElementById('game-container').style.display = 'none'; // Hide game
+                document.getElementById('start-game-btn').addEventListener('click', function() {
+                    document.getElementById('title-screen').style.display = 'none'; // Hide title screen
+                    document.getElementById('game-container').style.display = 'flex'; // Show game
+                    showCategorySelection(); // Start the game by showing category selection
+                });
+                console.log('Game initialized successfully');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('game-container').innerHTML = '<p>Error loading game. Check console for details.</p>';
+            }
+        });
+
+        document.querySelectorAll('.power-up-btn').forEach(btn => {
+            btn.onclick = () => {
+                const powerUp = btn.getAttribute('data-power');
+                const feedback = document.getElementById("feedback");
+
+                // Handle costs and prerequisites
+                if (powerUp === "shield" && game.gems < 10) {
+                    feedback.textContent = "Not Enough Gems!";
+                    feedback.style.color = "#dc3545";
+                    feedback.classList.add("show");
+                    setTimeout(() => feedback.classList.remove("show"), 1000);
+                    return;
+                }
+                if (["extraTime", "doublePoints", "freeze", "fiftyFifty"].includes(powerUp) && game.coins < (powerUp === "fiftyFifty" ? 15 : 10)) {
+                    feedback.textContent = "Not Enough Coins!";
+                    feedback.style.color = "#dc3545";
+                    feedback.classList.add("show");
+                    setTimeout(() => feedback.classList.remove("show"), 1000);
+                    return;
+                }
+                if (powerUp === "stealPoints" && game.coins < 20) {
+                    feedback.textContent = "Not Enough Coins!";
+                    feedback.style.color = "#dc3545";
+                    feedback.classList.add("show");
+                    setTimeout(() => feedback.classList.remove("show"), 1000);
+                    return;
+                }
+                if (powerUp === "stealPoints" && !game.isBattleRoyale) {
+                    feedback.textContent = "Steal Points only available in Battle Royale!";
+                    feedback.style.color = "#dc3545";
+                    feedback.classList.add("show");
+                    setTimeout(() => feedback.classList.remove("show"), 1000);
+                    return;
+                }
+
+                // Deduct cost and apply power-up effect
+                if (powerUp === "shield") {
+                    game.gems -= 10;
+                    game.shieldActive = true;
+                    feedback.textContent = "Shield Activated! Protects from next life loss.";
+                    btn.disabled = true; // Disable to prevent re-use in same match
+                } else if (powerUp === "fiftyFifty") {
+                    game.coins -= 15;
+                    const q = (game.isDailyChallenge ? game.dailyChallengeQuestions : 
+                            (game.isBattleRoyale ? game.battleRoyaleQuestions : 
+                            game.currentQuestions))[game.questionIndex];
+                    const incorrectOptions = q.options.filter(opt => opt.charAt(0) !== q.correctAnswer);
+                    const toRemove = shuffle(incorrectOptions).slice(0, 2);
+                    document.querySelectorAll('.option-btn').forEach(optBtn => {
+                        if (toRemove.some(opt => opt === optBtn.textContent)) {
+                            optBtn.disabled = true;
+                            optBtn.style.opacity = "0.5";
+                        }
+                    });
+                    feedback.textContent = "50/50 Activated! Two incorrect options removed.";
+                } else if (powerUp === "stealPoints") {
+                    game.coins -= 20;
+                    game.stealPointsActive = true;
+                    // Choose a random opponent with lives remaining
+                    const opponents = game.battlePlayers.filter(p => p.lives > 0 && p.name !== "You");
+                    if (opponents.length > 0) {
+                        game.stealPointsTarget = opponents[Math.floor(Math.random() * opponents.length)];
+                        feedback.textContent = `Steal Points Activated! Targeting ${game.stealPointsTarget.name}.`;
+                    } else {
+                        game.stealPointsActive = false;
+                        feedback.textContent = "No opponents to steal from!";
+                    }
+                } else if (powerUp === 'extraTime') {
+                    game.coins -= 10;
+                    game.extraTime = true;
+                    startTimer();
+                    feedback.textContent = "Extra Time Activated!";
+                } else if (powerUp === 'doublePoints') {
+                    game.coins -= 10;
+                    game.doublePoints = true;
+                    feedback.textContent = "Double Points Activated!";
+                } else if (powerUp === 'freeze') {
+                    game.coins -= 10;
+                    game.freeze = true;
+                    startTimer();
+                    feedback.textContent = "Timer Frozen!";
+                    setTimeout(() => {
+                        game.freeze = false;
+                        startTimer();
+                        feedback.classList.remove("show");
+                    }, 3000);
+                }
+
+                feedback.style.color = "#ffc107";
+                feedback.classList.add("show");
+                setTimeout(() => feedback.classList.remove("show"), 1000);
+                updateScoreDisplay();
+            };
+        });
+    </script>
+</html>
